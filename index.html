@@ -188,7 +188,19 @@
     let salarioMensal = parseFloat(localStorage.getItem("salarioPlus")) || 0;
     let pdfBlob = null;
 
-    // ======================== UTILITÁRIOS ========================
+    // ========== FUNÇÃO AUXILIAR: Converter horas decimais para "XhYmin" ==========
+    function formatHorasMinutos(horasDecimais) {
+        if (isNaN(horasDecimais) || horasDecimais === 0) return "0h00min";
+        const horasInteiras = Math.floor(horasDecimais);
+        const minutosDecimais = (horasDecimais - horasInteiras) * 60;
+        const minutos = Math.round(minutosDecimais);
+        if (minutos === 60) {
+            return `${horasInteiras + 1}h00min`;
+        }
+        return `${horasInteiras}h${minutos.toString().padStart(2, '0')}min`;
+    }
+
+    // ========== UTILITÁRIOS ==========
     function mostrarAlerta(mensagem) {
         const alerta = document.createElement('div');
         alerta.className = 'alert';
@@ -252,12 +264,10 @@
             if (reg.horasNoturnas === undefined) {
                 const noturnas = calcularHorasNoturnas(reg.startDate, reg.startTime, reg.endDate, reg.endTime);
                 reg.horasNoturnas = noturnas;
-                // Recalcular valor com base nas horas noturnas
-                let percentual = reg.adicionalFinal; // já armazenado
+                let percentual = reg.adicionalFinal;
                 reg.valor = calcularValorTotal(reg.horas, noturnas, percentual, salarioMensal);
                 alterado = true;
             }
-            // Garantir que adicionalFinal existe
             if (reg.adicionalFinal === undefined) reg.adicionalFinal = 50;
         }
         if (alterado) {
@@ -366,7 +376,7 @@
         let totalHoras = 0, totalValor = 0, totalNoturnas = 0;
         if(filtered.length === 0){
             body.innerHTML = "<tr><td colspan='8' style='text-align:center;padding:25px;'>Nenhum registro encontrado.</td></tr>";
-            document.getElementById("totaisContainer").innerHTML = `Total: 0h | R$ 0,00`;
+            document.getElementById("totaisContainer").innerHTML = `Total: 0h00min | R$ 0,00`;
             return;
         }
         filtered.forEach(reg => {
@@ -375,13 +385,13 @@
             totalNoturnas += reg.horasNoturnas || 0;
             let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime} → ${formatarDataBR(reg.endDate)} ${reg.endTime}`;
             let badgeExtra = `<span class="badge">${reg.adicionalFinal}%</span>`;
-            let badgeNoturno = (reg.horasNoturnas > 0) ? `<span class="badge badge-noturno">20% (${reg.horasNoturnas.toFixed(2)}h)</span>` : `<span class="badge">-</span>`;
+            let badgeNoturno = (reg.horasNoturnas > 0) ? `<span class="badge badge-noturno">20% (${formatHorasMinutos(reg.horasNoturnas)})</span>` : `<span class="badge">-</span>`;
             let idxGlobal = registros.findIndex(r => r.id === reg.id);
             let tr = document.createElement("tr");
             tr.innerHTML = `
                 <td style="font-size:0.8rem;">${periodo}</td>
-                <td><strong>${reg.horas.toFixed(2)}h</strong></td>
-                <td>${reg.horasNoturnas ? reg.horasNoturnas.toFixed(2)+'h' : '0h'}</td>
+                <td><strong>${formatHorasMinutos(reg.horas)}</strong></td>
+                <td>${reg.horasNoturnas ? formatHorasMinutos(reg.horasNoturnas) : '0h00min'}</td>
                 <td>${badgeExtra}</td>
                 <td>${badgeNoturno}</td>
                 <td style="color:#c3e88d;">R$ ${reg.valor.toFixed(2)}</td>
@@ -390,7 +400,9 @@
             `;
             body.appendChild(tr);
         });
-        document.getElementById("totaisContainer").innerHTML = `📊 Total: ${totalHoras.toFixed(2)} horas (sendo ${totalNoturnas.toFixed(2)}h noturnas) | 💰 Remuneração extra: R$ ${totalValor.toFixed(2)} | ${filtered.length} registro(s)`;
+        let totalHorasFormatado = formatHorasMinutos(totalHoras);
+        let totalNoturnasFormatado = formatHorasMinutos(totalNoturnas);
+        document.getElementById("totaisContainer").innerHTML = `📊 Total: ${totalHorasFormatado} (sendo ${totalNoturnasFormatado} noturnas) | 💰 Remuneração extra: R$ ${totalValor.toFixed(2)} | ${filtered.length} registro(s)`;
     }
 
     function limparFiltros() {
@@ -425,7 +437,7 @@
         statusSpan.innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Valor/hora: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
     }
 
-    // ========== PDF MELHORADO ==========
+    // ========== PDF MELHORADO (com horas:minutos) ==========
     async function gerarRelatorioPDFMelhorado(apenasCompartilhar = false) {
         if (salarioMensal <= 0) { mostrarAlerta("Defina o salário mensal antes."); return; }
         let dados = aplicarFiltros();
@@ -452,12 +464,11 @@
                 
                 // Tabela
                 const colX = { periodo: mx, horas: mx+70, noturnas: mx+88, extra: mx+105, valor: mx+125, desc: mx+148 };
-                const largCols = [68, 16, 18, 16, 22, 35];
                 function cabecalho(){
                     doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F');
                     doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont("helvetica","bold");
                     doc.text("Período", colX.periodo+1, y+5);
-                    doc.text("Total h", colX.horas+1, y+5);
+                    doc.text("Total hrs", colX.horas+1, y+5);
                     doc.text("Noturnas", colX.noturnas+1, y+5);
                     doc.text("Adic.", colX.extra+1, y+5);
                     doc.text("Valor R$", colX.valor+1, y+5);
@@ -483,8 +494,8 @@
                     quebrarPagina(linhaH);
                     let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime}→${formatarDataBR(reg.endDate)} ${reg.endTime}`;
                     doc.text(periodo, colX.periodo+1, y+4);
-                    doc.text(reg.horas.toFixed(2), colX.horas+1, y+4);
-                    doc.text((reg.horasNoturnas||0).toFixed(2), colX.noturnas+1, y+4);
+                    doc.text(formatHorasMinutos(reg.horas), colX.horas+1, y+4);
+                    doc.text(formatHorasMinutos(reg.horasNoturnas||0), colX.noturnas+1, y+4);
                     doc.text(`${reg.adicionalFinal}%`, colX.extra+1, y+4);
                     doc.text(`R$ ${reg.valor.toFixed(2)}`, colX.valor+1, y+4);
                     let desc = reg.descricao.length>25?reg.descricao.substring(0,22)+"...":reg.descricao;
@@ -496,7 +507,7 @@
                 doc.setFont("helvetica","bold"); doc.setFontSize(10.5);
                 doc.text("RESUMO FINAL", mx, y); y+=6;
                 doc.setFontSize(9.5); doc.setFont("helvetica","normal");
-                doc.text(`Total horas extras: ${totalHoras.toFixed(2)} h (noturnas: ${totalNoturnas.toFixed(2)} h)`, mx, y); y+=5.5;
+                doc.text(`Total horas extras: ${formatHorasMinutos(totalHoras)} (noturnas: ${formatHorasMinutos(totalNoturnas)})`, mx, y); y+=5.5;
                 doc.text(`Valor total a receber: R$ ${totalValor.toFixed(2)}`, mx, y); y+=8;
                 doc.setFontSize(7); doc.setTextColor(100);
                 doc.text("* Adicional noturno de 20% sobre a hora normal (22h às 5h).", mx, y);
