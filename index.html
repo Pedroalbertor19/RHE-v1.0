@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras | Checkbox Feriado + Automático</title>
+    <title>Horas Extras + Banco de Horas (16 ao 15)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -38,7 +38,7 @@
         .filter-bar > div { flex: 1; min-width: 160px; }
         .info-note { font-size: 0.75rem; background: #0d2e3d; border-radius: 24px; padding: 8px 14px; margin-top: 10px; text-align: center; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); }
-        .modal-content { background: linear-gradient(135deg,#1a3a4a,#0d2a38); margin: 15% auto; padding: 25px; border-radius: 28px; width: 90%; max-width: 400px; text-align: center; border: 2px solid #2bc0ff; }
+        .modal-content { background: linear-gradient(135deg,#1a3a4a,#0d2a38); margin: 15% auto; padding: 25px; border-radius: 28px; width: 90%; max-width: 500px; text-align: center; border: 2px solid #2bc0ff; }
         .close { float: right; font-size: 28px; cursor: pointer; color: #aaa; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -48,7 +48,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Controle de Horas Extras <small>50% dias úteis | 100% domingos/feriados</small></h1>
+    <h1>⚖️ Horas Extras + Banco de Horas <small>Período 16→15</small></h1>
 
     <div class="card">
         <h3>💰 Salário base</h3>
@@ -67,17 +67,15 @@
         </div>
         <div class="checkbox-row">
             <input type="checkbox" id="feriadoManualCheckbox">
-            <label for="feriadoManualCheckbox">📅 Marque se este período é em <strong>feriado (adicional 100%)</strong> — força o percentual máximo, mesmo em dias úteis.</label>
+            <label>📅 Marque se este período é em <strong>feriado (adicional 100%)</strong> — força o percentual máximo</label>
         </div>
-        <div style="margin-top: 10px;">
-            <textarea id="descricaoExtra" rows="2" placeholder="Descrição da atividade"></textarea>
-        </div>
+        <div><textarea id="descricaoExtra" rows="2" placeholder="Descrição"></textarea></div>
         <button onclick="adicionarRegistro()">Adicionar Registro</button>
-        <div class="info-note">🌙 Adicional noturno (20%) automático entre 22h e 5h. <br> ✅ <strong>Sem checkbox:</strong> domingos/feriados nacionais → 100% | dias úteis → 50%. <br> ✅ <strong>Com checkbox:</strong> todo o período recebe 100% (útil para feriados municipais, emendas, etc).</div>
+        <div class="info-note">🌙 Adicional noturno (20%) automático. Domingos/feriados nacionais = 100%; dias úteis = 50%; checkbox força 100%.</div>
     </div>
 
     <div class="card">
-        <h3>📊 Filtros</h3>
+        <h3>📊 Filtros e Relatório Principal</h3>
         <div class="filter-bar">
             <div><label>Mês</label><input type="month" id="filtroMes" onchange="renderizarTabela()"></div>
             <div><label>Descrição</label><input type="text" id="filtroDescricao" placeholder="Palavra" onkeyup="renderizarTabela()"></div>
@@ -85,17 +83,32 @@
         </div>
         <div class="flex-buttons">
             <button onclick="limparFiltros()" class="btn-outline">Limpar</button>
-            <button onclick="gerarPDF()" class="btn-pdf" id="btnGerarPDF">📄 Gerar PDF</button>
+            <button onclick="gerarPDF()" class="btn-pdf">📄 PDF principal</button>
             <button onclick="compartilharRelatorio()" class="btn-share">📤 Compartilhar</button>
         </div>
         <div id="filtroStatus" class="info-note"></div>
     </div>
 
     <div class="card">
-        <h3>📋 Histórico</h3>
+        <h3>🏦 Banco de Horas (Excedente mensal > 40h)</h3>
+        <div class="flex-buttons">
+            <button onclick="atualizarBancoHoras()" class="btn-outline">🔄 Atualizar banco agora</button>
+            <button onclick="gerarPDFBancoHoras()" class="btn-pdf">📄 Relatório do Banco</button>
+        </div>
+        <div class="table-wrapper">
+            <table style="min-width: 400px;">
+                <thead><tr><th>Competência (16/MM/AAAA a 15/MM/AAAA)</th><th>Horas no período</th><th>Excedente (>40h)</th><th>Acumulado no banco</th></tr></thead>
+                <tbody id="tabelaBancoHoras"></tbody>
+            </table>
+        </div>
+        <div id="bancoTotal" class="total"></div>
+    </div>
+
+    <div class="card">
+        <h3>📋 Histórico de Horas Extras</h3>
         <div class="table-wrapper">
             <table>
-                <thead><tr><th>Período (início → fim)</th><th>Total hrs</th><th>Hrs noturnas</th><th>Adicional %</th><th>Valor Extra (50/100%)</th><th>Adicional Noturno (20%)</th><th>Valor Total</th><th>Descrição</th><th></th></tr></thead>
+                <thead><tr><th>Período</th><th>Total hrs</th><th>Hrs noturnas</th><th>Adicional</th><th>Valor Extra</th><th>Adic. Noturno</th><th>Valor Total</th><th>Descrição</th><th></th></tr></thead>
                 <tbody id="tabelaRegistros"></tbody>
             </table>
         </div>
@@ -103,24 +116,24 @@
     </div>
 </div>
 
+<!-- Modal para PDF -->
 <div id="pdfModal" class="modal"><div class="modal-content"><span class="close" onclick="fecharModal()">&times;</span><h3>PDF Gerado</h3><input type="text" id="nomeArquivoPDF" placeholder="nome do arquivo" style="margin:15px 0"><div class="modal-buttons"><button onclick="baixarPDF()">💾 Baixar</button><button onclick="compartilharPDF()">📤 Compartilhar</button><button onclick="visualizarPDF()">👁️ Visualizar</button></div></div></div>
 
 <script>
     const { jsPDF } = window.jspdf;
     let registros = JSON.parse(localStorage.getItem("horasExtrasPlus")) || [];
     let salarioMensal = parseFloat(localStorage.getItem("salarioPlus")) || 0;
+    let bancoHoras = JSON.parse(localStorage.getItem("bancoHoras")) || []; // { competencia: "03/2026", horasExcedente: 5.5 }
     let pdfBlob = null;
 
-    // Feriados nacionais fixos (até 2026, pode expandir)
+    // ========== FERIADOS NACIONAIS ==========
     const feriadosNacionais = new Set([
         "2026-01-01", "2026-04-21", "2026-05-01", "2026-09-07",
         "2026-10-12", "2026-11-02", "2026-11-15", "2026-12-25"
     ]);
+    function isFeriadoNacional(dataISO) { return feriadosNacionais.has(dataISO); }
 
-    function isFeriadoNacional(dataISO) {
-        return feriadosNacionais.has(dataISO);
-    }
-
+    // ========== UTILITÁRIOS ==========
     function formatHorasMinutos(h) {
         if (isNaN(h) || h <= 0) return "0h00min";
         let horas = Math.floor(h);
@@ -128,10 +141,9 @@
         if (mins === 60) { horas++; mins = 0; }
         return `${horas}h${mins.toString().padStart(2,'0')}min`;
     }
-
     function formatarDataBR(d) { if(!d) return ""; let [a,m,dia] = d.split("-"); return `${dia}/${m}/${a}`; }
 
-    // Calcula horas noturnas (minuto a minuto) dentro de um intervalo
+    // ========== CÁLCULO DE HORAS NOTURNAS ==========
     function calcularHorasNoturnas(inicio, fim) {
         let minutos = 0;
         let current = new Date(inicio);
@@ -142,9 +154,7 @@
         return minutos / 60;
     }
 
-    // Rateia por dia, aplicando 50% ou 100% conforme regras:
-    // - Se o registro tiver flag 'feriadoManual' = true => força 100% em todos os minutos
-    // - Caso contrário: domingo ou feriado nacional => 100%; dias úteis => 50%
+    // ========== CÁLCULO DO REGISTRO (valores e horas) ==========
     function calcularRateioPorDia(startDate, startTime, endDate, endTime, forcarFeriado = false) {
         let inicio = new Date(`${startDate}T${startTime}:00`);
         let fim = new Date(`${endDate}T${endTime}:00`);
@@ -166,11 +176,8 @@
             let isDomingo = inicioMinuto.getDay() === 0;
             let isFeriadoNac = isFeriadoNacional(dataStr);
             let percExtra;
-            if (forcarFeriado) {
-                percExtra = 100; // forçado pelo checkbox
-            } else {
-                percExtra = (isDomingo || isFeriadoNac) ? 100 : 50;
-            }
+            if (forcarFeriado) percExtra = 100;
+            else percExtra = (isDomingo || isFeriadoNac) ? 100 : 50;
 
             let isNoturno = (inicioMinuto.getHours() >= 22 || inicioMinuto.getHours() < 5);
             let valorBaseMinuto = valorHoraBase * horaNoPeriodo;
@@ -185,27 +192,20 @@
             current = fimMinuto;
         }
         let valorTotal = acumExtraPuro + acumNoturnoPuro + (acumHoras * valorHoraBase);
-        return {
-            totalHoras: acumHoras,
-            horasNoturnas: acumNoturnas,
-            valorExtraPuro: acumExtraPuro,
-            valorAdicionalNoturno: acumNoturnoPuro,
-            valorTotal: valorTotal
-        };
+        return { totalHoras: acumHoras, horasNoturnas: acumNoturnas, valorExtraPuro: acumExtraPuro, valorAdicionalNoturno: acumNoturnoPuro, valorTotal };
     }
 
+    // ========== ADICIONAR / REMOVER REGISTROS ==========
     function adicionarRegistro() {
         let inicioData = document.getElementById("inicioData").value;
         let inicioHora = document.getElementById("inicioHora").value;
         let fimData = document.getElementById("fimData").value;
         let fimHora = document.getElementById("fimHora").value;
-        let descricao = document.getElementById("descricaoExtra").value.trim();
         let forcarFeriado = document.getElementById("feriadoManualCheckbox").checked;
-
-        if (!inicioData || !inicioHora || !fimData || !fimHora) { alert("Preencha todas as datas/horários"); return; }
-        let dtIni = new Date(`${inicioData}T${inicioHora}:00`);
-        let dtFim = new Date(`${fimData}T${fimHora}:00`);
-        if (dtFim <= dtIni) { alert("Saída deve ser posterior ao início"); return; }
+        let descricao = document.getElementById("descricaoExtra").value.trim();
+        if (!inicioData || !inicioHora || !fimData || !fimHora) { alert("Preencha tudo"); return; }
+        let dtIni = new Date(`${inicioData}T${inicioHora}:00`), dtFim = new Date(`${fimData}T${fimHora}:00`);
+        if (dtFim <= dtIni) { alert("Saída posterior ao início"); return; }
 
         let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
             calcularRateioPorDia(inicioData, inicioHora, fimData, fimHora, forcarFeriado);
@@ -215,7 +215,7 @@
             startDate: inicioData, startTime: inicioHora,
             endDate: fimData, endTime: fimHora,
             horas: totalHoras, horasNoturnas: horasNoturnas,
-            feriadoManual: forcarFeriado,   // salva se foi marcado
+            feriadoManual: forcarFeriado,
             valorExtra: valorExtraPuro,
             valorNoturnoAdicional: valorAdicionalNoturno,
             valor: valorTotal,
@@ -223,14 +223,121 @@
         };
         registros.push(novo);
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+        atualizarBancoHoras();          // recalcula banco de horas
         renderizarTabela();
-        alert("Registro adicionado!");
-        // limpa checkbox para próximo
         document.getElementById("feriadoManualCheckbox").checked = false;
+        alert("Registro adicionado!");
     }
 
-    function removerRegistro(idx) { if(confirm("Excluir?")) { registros.splice(idx,1); localStorage.setItem("horasExtrasPlus", JSON.stringify(registros)); renderizarTabela(); } }
+    function removerRegistro(idx) {
+        if(confirm("Excluir?")) {
+            registros.splice(idx,1);
+            localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+            atualizarBancoHoras();
+            renderizarTabela();
+        }
+    }
 
+    // ========== LÓGICA DO BANCO DE HORAS (PERÍODO 16 AO 15) ==========
+    // Retorna a competência no formato "MM/AAAA" baseado no dia 16 (ex: 16/03/2026 -> "03/2026")
+    function getCompetencia(data) {
+        let ano = data.getFullYear();
+        let mes = data.getMonth();
+        if (data.getDate() >= 16) {
+            // pertence à competência do mês atual (ex: 16/03 a 15/04 -> competência março)
+            return `${(mes+1).toString().padStart(2,'0')}/${ano}`;
+        } else {
+            // se dia <=15, pertence à competência do mês anterior
+            let mesAnterior = mes === 0 ? 11 : mes-1;
+            let anoAnterior = mes === 0 ? ano-1 : ano;
+            return `${(mesAnterior+1).toString().padStart(2,'0')}/${anoAnterior}`;
+        }
+    }
+
+    // Retorna o total de horas de um registro que caem dentro de uma competência específica (rateio minuto a minuto)
+    function horasNoPeriodoCompetencia(reg, competencia) {
+        // competencia no formato "MM/AAAA"
+        let [mesComp, anoComp] = competencia.split('/');
+        let dataInicioCompetencia = new Date(parseInt(anoComp), parseInt(mesComp)-1, 16); // 16 do mês
+        let dataFimCompetencia = new Date(parseInt(anoComp), parseInt(mesComp), 15); // 15 do próximo mês
+        if (dataFimCompetencia.getMonth() === parseInt(mesComp)-1) dataFimCompetencia = new Date(parseInt(anoComp), parseInt(mesComp), 15);
+        // Garantir que o período é das 00:00 até 23:59 do dia 15
+        dataFimCompetencia.setHours(23,59,59,999);
+        
+        let inicioReg = new Date(`${reg.startDate}T${reg.startTime}:00`);
+        let fimReg = new Date(`${reg.endDate}T${reg.endTime}:00`);
+        if (fimReg <= dataInicioCompetencia || inicioReg >= dataFimCompetencia) return 0;
+        
+        let inicioEfetivo = inicioReg < dataInicioCompetencia ? dataInicioCompetencia : inicioReg;
+        let fimEfetivo = fimReg > dataFimCompetencia ? dataFimCompetencia : fimReg;
+        if (fimEfetivo <= inicioEfetivo) return 0;
+        
+        // Calcula horas totais (não apenas noturnas) entre esses dois momentos
+        let diffMs = fimEfetivo - inicioEfetivo;
+        return diffMs / 3600000;
+    }
+
+    function atualizarBancoHoras() {
+        // Agrupar horas por competência
+        let horasPorCompetencia = new Map(); // chave: "MM/AAAA", valor: total horas
+        for (let reg of registros) {
+            // Determinar qual competência este registro atende (pode estar em mais de uma se cruzar o dia 15)
+            // Solução robusta: percorrer minuto a minuto? Mais simples: pegar a competência da data de início e da data de fim se diferentes.
+            let startDateObj = new Date(reg.startDate);
+            let endDateObj = new Date(reg.endDate);
+            let compIni = getCompetencia(startDateObj);
+            let compFim = getCompetencia(endDateObj);
+            if (compIni === compFim) {
+                let horas = horasNoPeriodoCompetencia(reg, compIni);
+                horasPorCompetencia.set(compIni, (horasPorCompetencia.get(compIni) || 0) + horas);
+            } else {
+                // O período abrange duas competências. Calcular separadamente.
+                let horasCompIni = horasNoPeriodoCompetencia(reg, compIni);
+                let horasCompFim = horasNoPeriodoCompetencia(reg, compFim);
+                horasPorCompetencia.set(compIni, (horasPorCompetencia.get(compIni) || 0) + horasCompIni);
+                horasPorCompetencia.set(compFim, (horasPorCompetencia.get(compFim) || 0) + horasCompFim);
+            }
+        }
+        
+        // Agora calcular excedentes (>40) e atualizar bancoHoras
+        let novoBanco = [];
+        for (let [comp, totalHoras] of horasPorCompetencia.entries()) {
+            let excedente = Math.max(0, totalHoras - 40);
+            if (excedente > 0) {
+                novoBanco.push({ competencia: comp, horasExcedente: excedente });
+            }
+        }
+        // Ordenar por data (mais antiga primeiro)
+        novoBanco.sort((a,b) => {
+            let [mesA, anoA] = a.competencia.split('/');
+            let [mesB, anoB] = b.competencia.split('/');
+            return new Date(anoA, mesA-1) - new Date(anoB, mesB-1);
+        });
+        bancoHoras = novoBanco;
+        localStorage.setItem("bancoHoras", JSON.stringify(bancoHoras));
+        renderizarBancoHoras();
+    }
+
+    function renderizarBancoHoras() {
+        let tbody = document.getElementById("tabelaBancoHoras");
+        tbody.innerHTML = "";
+        let totalExcedente = 0;
+        for (let item of bancoHoras) {
+            totalExcedente += item.horasExcedente;
+            let [mes, ano] = item.competencia.split('/');
+            let periodoStr = `16/${mes}/${ano} a 15/${parseInt(mes)+1}/${ano}`;
+            let row = `<tr>
+                <td>${periodoStr}</td>
+                <td>${formatHorasMinutos(item.horasExcedente + 40)}</td>
+                <td>${formatHorasMinutos(item.horasExcedente)}</td>
+                <td>${formatHorasMinutos(totalExcedente)}</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
+        }
+        document.getElementById("bancoTotal").innerHTML = `🏦 Acumulado no banco de horas: ${formatHorasMinutos(totalExcedente)}`;
+    }
+
+    // ========== RENDERIZAÇÃO DA TABELA PRINCIPAL ==========
     function aplicarFiltros() {
         let mes = document.getElementById("filtroMes").value;
         let desc = document.getElementById("filtroDescricao").value.toLowerCase();
@@ -254,16 +361,17 @@
             totalHoras += reg.horas; totalNoturnas += reg.horasNoturnas; totalExtra += reg.valorExtra; totalNotAd += reg.valorNoturnoAdicional; totalGeral += reg.valor;
             let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime} → ${formatarDataBR(reg.endDate)} ${reg.endTime}`;
             let badgeAdicional = reg.feriadoManual ? '<span class="badge badge-manual">100% (marcado)</span>' : '<span class="badge">auto</span>';
+            let idx = registros.findIndex(r => r.id === reg.id);
             let row = `<tr>
                 <td style="text-align:left;">${periodo}</td>
                 <td>${formatHorasMinutos(reg.horas)}</td>
-                <td>${reg.horasNoturnas ? formatHorasMinutos(reg.horasNoturnas) : '0h00min'}</td>
+                <td>${formatHorasMinutos(reg.horasNoturnas)}</td>
                 <td>${badgeAdicional}</td>
                 <td>R$ ${reg.valorExtra.toFixed(2)}</td>
                 <td>R$ ${reg.valorNoturnoAdicional.toFixed(2)}</td>
                 <td><strong>R$ ${reg.valor.toFixed(2)}</strong></td>
-                <td style="text-align:left;">${reg.descricao.substring(0,30)}</td>
-                <td><button class="delete-btn" onclick="removerRegistro(${registros.findIndex(r=>r.id===reg.id)})">Excluir</button></td>
+                <td>${reg.descricao.substring(0,30)}</td>
+                <td><button class="delete-btn" onclick="removerRegistro(${idx})">Excluir</button></td>
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', row);
         });
@@ -275,8 +383,8 @@
         filtroStatus.innerHTML = ativos.length ? `Filtros: ${ativos.join(' | ')}` : "Nenhum filtro ativo";
         document.getElementById("totaisContainer").innerHTML = `
             📊 <strong>Total horas:</strong> ${formatHorasMinutos(totalHoras)} (${formatHorasMinutos(totalNoturnas)} noturnas)<br>
-            💰 <strong>Valor Extra (automático + checkbox):</strong> R$ ${totalExtra.toFixed(2)} &nbsp;|&nbsp;
-            🌙 <strong>Adicional Noturno (20%):</strong> R$ ${totalNotAd.toFixed(2)} &nbsp;|&nbsp;
+            💰 <strong>Valor Extra:</strong> R$ ${totalExtra.toFixed(2)} &nbsp;|&nbsp;
+            🌙 <strong>Adicional Noturno:</strong> R$ ${totalNotAd.toFixed(2)} &nbsp;|&nbsp;
             🧾 <strong>Soma Total:</strong> R$ ${totalGeral.toFixed(2)} &nbsp;|&nbsp; ${filtrados.length} registro(s)
         `;
     }
@@ -294,28 +402,26 @@
         if(isNaN(val)) val=0;
         salarioMensal = val;
         localStorage.setItem("salarioPlus", salarioMensal);
-        // Recalcula todos os registros (respeitando a flag feriadoManual de cada um)
+        // Recalcular todos os registros
         for(let reg of registros) {
             let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
                 calcularRateioPorDia(reg.startDate, reg.startTime, reg.endDate, reg.endTime, reg.feriadoManual || false);
-            reg.horas = totalHoras;
-            reg.horasNoturnas = horasNoturnas;
-            reg.valorExtra = valorExtraPuro;
-            reg.valorNoturnoAdicional = valorAdicionalNoturno;
-            reg.valor = valorTotal;
+            reg.horas = totalHoras; reg.horasNoturnas = horasNoturnas;
+            reg.valorExtra = valorExtraPuro; reg.valorNoturnoAdicional = valorAdicionalNoturno; reg.valor = valorTotal;
         }
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-        document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
+        atualizarBancoHoras();
         renderizarTabela();
-        alert("Salário atualizado e todos os valores recalculados!");
+        document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
+        alert("Salário atualizado!");
     }
 
-    // PDF (mesma lógica)
+    // ========== GERAR PDF PRINCIPAL ==========
     async function gerarPDF() {
         if (salarioMensal <= 0) { alert("Defina o salário."); return; }
         let dados = aplicarFiltros();
         if(dados.length===0) { alert("Sem registros."); return; }
-        const btn = document.getElementById('btnGerarPDF');
+        const btn = event.target;
         btn.innerHTML = '<span class="loading"></span>';
         btn.disabled = true;
         setTimeout(() => {
@@ -325,7 +431,7 @@
                 let y=25, mx=10;
                 doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F');
                 doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"});
-                doc.setFontSize(8); doc.text("50% dias úteis | 100% domingos/feriados nacionais | Checkbox força 100%", pw/2, 24, {align:"center"});
+                doc.setFontSize(8); doc.text("Dias úteis 50% | Domingos/feriados 100% | Checkbox força 100%", pw/2, 24, {align:"center"});
                 y=38;
                 doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9);
                 doc.text("INFORMAÇÕES", mx, y); y+=5;
@@ -360,28 +466,72 @@
                 if (y > ph-25) { doc.addPage(); y=20; }
                 doc.setFont("helvetica","bold"); doc.setFontSize(10);
                 doc.text("RESUMO FINAL", mx, y); y+=5;
-                doc.setFontSize(9); doc.setFont("helvetica","normal");
+                doc.setFontSize(9);
                 doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5;
                 doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5;
                 doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5;
-                doc.text(`Soma TOTAL GERAL: R$ ${somaTot.toFixed(2)}`, mx, y); y+=6;
-                doc.setFontSize(7); doc.text("* Dias úteis = 50% | Domingos/feriados nacionais = 100% | Checkbox 'Feriado' força 100%", mx, y);
+                doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y);
                 const pag = doc.internal.getNumberOfPages();
-                for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema com Checkbox", mx, ph-10); }
+                for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras", mx, ph-10); }
                 pdfBlob = doc.output('blob');
-                document.getElementById("nomeArquivoPDF").value = `checkbox_${new Date().toISOString().slice(0,10)}`;
+                document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`;
                 document.getElementById("pdfModal").style.display = "block";
             } catch(e) { alert("Erro: "+e); }
-            finally { btn.innerHTML = "📄 Gerar PDF"; btn.disabled = false; }
+            finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; }
         }, 100);
     }
 
+    // ========== GERAR PDF DO BANCO DE HORAS ==========
+    async function gerarPDFBancoHoras() {
+        if (bancoHoras.length === 0) { alert("Nenhum excedente registrado."); return; }
+        const btn = event.target;
+        btn.innerHTML = '<span class="loading"></span>';
+        btn.disabled = true;
+        setTimeout(() => {
+            try {
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pw = doc.internal.pageSize.getWidth();
+                let y = 25, mx = 10;
+                doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F');
+                doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DO BANCO DE HORAS", pw/2, 15, {align:"center"});
+                doc.setFontSize(8); doc.text("Excedentes mensais (>40h) no período 16→15", pw/2, 24, {align:"center"});
+                y=40;
+                doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+                doc.text("Competência (16 a 15)", mx, y); doc.text("Horas no período", mx+60, y); doc.text("Excedente", mx+110, y); doc.text("Acumulado", mx+150, y);
+                y+=6;
+                doc.setFont("helvetica","normal"); doc.setFontSize(9);
+                let acumulado = 0;
+                for (let item of bancoHoras) {
+                    let [mes, ano] = item.competencia.split('/');
+                    let periodoStr = `16/${mes}/${ano} a 15/${parseInt(mes)+1}/${ano}`;
+                    let totalPeriodo = item.horasExcedente + 40;
+                    acumulado += item.horasExcedente;
+                    doc.text(periodoStr, mx, y);
+                    doc.text(formatHorasMinutos(totalPeriodo), mx+60, y);
+                    doc.text(formatHorasMinutos(item.horasExcedente), mx+110, y);
+                    doc.text(formatHorasMinutos(acumulado), mx+150, y);
+                    y+=6;
+                    if (y > 270) { doc.addPage(); y=25; }
+                }
+                y+=10;
+                doc.setFont("helvetica","bold");
+                doc.text(`Total acumulado no banco de horas: ${formatHorasMinutos(acumulado)}`, mx, y);
+                pdfBlob = doc.output('blob');
+                document.getElementById("nomeArquivoPDF").value = `banco_horas_${new Date().toISOString().slice(0,10)}`;
+                document.getElementById("pdfModal").style.display = "block";
+            } catch(e) { alert("Erro: "+e); }
+            finally { btn.innerHTML = "📄 Relatório do Banco"; btn.disabled = false; }
+        }, 100);
+    }
+
+    // ========== COMPARTILHAMENTO E MODAL ==========
     function fecharModal() { document.getElementById("pdfModal").style.display = "none"; }
     function baixarPDF() { if(pdfBlob){ let nome = document.getElementById("nomeArquivoPDF").value.trim() || "relatorio.pdf"; if(!nome.endsWith(".pdf")) nome+=".pdf"; let url = URL.createObjectURL(pdfBlob); let a = document.createElement('a'); a.href=url; a.download=nome; a.click(); setTimeout(()=>URL.revokeObjectURL(url),100); fecharModal(); } }
     function compartilharPDF() { if(pdfBlob){ let nome = document.getElementById("nomeArquivoPDF").value.trim()+".pdf"; let file = new File([pdfBlob], nome, {type:"application/pdf"}); if(navigator.share) navigator.share({files:[file]}).catch(()=>baixarPDF()); else baixarPDF(); } }
     function visualizarPDF() { if(pdfBlob) window.open(URL.createObjectURL(pdfBlob), '_blank'); fecharModal(); }
     function compartilharRelatorio() { if(pdfBlob) compartilharPDF(); else gerarPDF(); }
 
+    // ========== INICIALIZAÇÃO ==========
     window.onload = () => {
         let hoje = new Date().toISOString().slice(0,10);
         let amanha = new Date(Date.now()+86400000).toISOString().slice(0,10);
@@ -389,12 +539,15 @@
         document.getElementById("inicioHora").value = "19:15";
         document.getElementById("fimData").value = amanha;
         document.getElementById("fimHora").value = "03:10";
-        salvarSalario();
+        salvarSalario(); // apenas para exibir na tela
         renderizarTabela();
+        atualizarBancoHoras(); // carrega banco existente
     };
     window.adicionarRegistro = adicionarRegistro; window.removerRegistro = removerRegistro; window.salvarSalario = salvarSalario;
-    window.limparFiltros = limparFiltros; window.gerarPDF = gerarPDF; window.fecharModal = fecharModal;
-    window.baixarPDF = baixarPDF; window.compartilharPDF = compartilharPDF; window.compartilharRelatorio = compartilharRelatorio; window.visualizarPDF = visualizarPDF;
+    window.limparFiltros = limparFiltros; window.gerarPDF = gerarPDF; window.gerarPDFBancoHoras = gerarPDFBancoHoras;
+    window.atualizarBancoHoras = atualizarBancoHoras;
+    window.fecharModal = fecharModal; window.baixarPDF = baixarPDF; window.compartilharPDF = compartilharPDF;
+    window.compartilharRelatorio = compartilharRelatorio; window.visualizarPDF = visualizarPDF;
 </script>
 </body>
-</html> 
+</html>
