@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Controle Profissional | Horas Extras + Adicional Noturno c/ Valores Separados</title>
+    <title>Controle Profissional | Horas Extras + Noturno (Layout Ajustado)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -20,7 +20,7 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        .container { max-width: 1280px; margin: 0 auto; padding: 1.5rem; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
         .card {
             background: rgba(12, 25, 35, 0.85);
             backdrop-filter: blur(2px);
@@ -30,65 +30,123 @@
             box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(72, 187, 255, 0.25);
         }
-        h1 { font-weight: 700; font-size: 1.9rem; margin: 0 0 0.25rem 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        h1 small { font-size: 0.75rem; background: #0a2e3f; padding: 5px 12px; border-radius: 60px; font-weight: normal; }
+        h1 { font-weight: 700; font-size: 1.7rem; margin: 0 0 0.25rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        h1 small { font-size: 0.7rem; background: #0a2e3f; padding: 5px 12px; border-radius: 60px; }
         h3 { margin-top: 0; margin-bottom: 1rem; font-weight: 600; border-left: 4px solid #2bc0ff; padding-left: 12px; }
         .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-        label { font-weight: 500; font-size: 0.85rem; margin-top: 0.5rem; display: block; opacity: 0.9; }
+        label { font-weight: 500; font-size: 0.85rem; display: block; opacity: 0.9; margin-top: 0.5rem; }
         input, select, textarea, button {
             width: 100%; margin-top: 6px; padding: 12px 14px; border: none;
-            border-radius: 18px; background: #ecf9ff; font-size: 0.95rem; font-weight: 500;
+            border-radius: 18px; background: #ecf9ff; font-size: 0.95rem;
             color: #042433;
         }
         button {
             background: linear-gradient(135deg, #1fa2ff, #0a6cbd);
             color: white; font-weight: bold; cursor: pointer; transition: 0.2s;
         }
-        button:hover { background: linear-gradient(135deg, #3bb3ff, #0f7fcf); transform: scale(0.98); }
-        .btn-outline { background: rgba(255,255,240,0.1); backdrop-filter: blur(4px); border: 1px solid #7bceff; color: #d9f2ff; }
-        .btn-outline:hover { background: #1d8fd1; color: white; }
+        button:hover { transform: scale(0.98); }
+        .btn-outline { background: rgba(255,255,240,0.1); border: 1px solid #7bceff; color: #d9f2ff; }
+        .btn-outline:hover { background: #1d8fd1; }
         .btn-pdf { background: linear-gradient(135deg, #d9534f, #b52b27); }
-        .btn-pdf:hover { background: linear-gradient(135deg, #e66762, #c9302c); }
         .btn-share { background: linear-gradient(135deg, #25D366, #128C7E); }
-        .btn-share:hover { background: linear-gradient(135deg, #30DB70, #1DAE96); }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.8rem; overflow-x: auto; display: block; }
-        th, td { padding: 8px 4px; border-bottom: 1px solid rgba(160, 210, 255, 0.3); text-align: center; vertical-align: middle; }
-        th { background: #0a374b80; font-weight: 600; }
-        .badge { background: #0e5d7a; padding: 4px 8px; border-radius: 50px; font-size: 0.7rem; font-weight: bold; white-space: nowrap; }
+        
+        /* Tabela com layout fixo e colunas ajustadas */
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            margin: 1rem 0;
+        }
+        table {
+            width: 100%;
+            min-width: 1000px;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        th, td {
+            padding: 10px 6px;
+            border-bottom: 1px solid rgba(160, 210, 255, 0.3);
+            vertical-align: middle;
+            text-align: center;
+        }
+        th {
+            background: #0a374b80;
+            font-weight: 600;
+        }
+        /* Coluna período com largura maior e quebra de linha */
+        th:first-child, td:first-child { width: 23%; }
+        th:nth-child(2), td:nth-child(2) { width: 8%; }
+        th:nth-child(3), td:nth-child(3) { width: 8%; }
+        th:nth-child(4), td:nth-child(4) { width: 6%; }
+        th:nth-child(5), td:nth-child(5) { width: 10%; }
+        th:nth-child(6), td:nth-child(6) { width: 10%; }
+        th:nth-child(7), td:nth-child(7) { width: 8%; }
+        th:nth-child(8), td:nth-child(8) { width: 15%; }
+        th:nth-child(9), td:nth-child(9) { width: 7%; }
+        
+        td:first-child {
+            white-space: normal;
+            word-break: break-word;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+        .badge {
+            background: #0e5d7a;
+            padding: 4px 8px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            white-space: nowrap;
+        }
         .badge-noturno { background: #b85c00; }
-        .total { background: #021c28aa; padding: 16px; border-radius: 28px; font-size: 1.1rem; font-weight: bold; margin-top: 1rem; text-align: center; }
-        .delete-btn { background: #b91c1c99; border-radius: 32px; padding: 4px 8px; color: white; width: auto; font-size: 0.7rem; }
+        .total {
+            background: #021c28aa;
+            padding: 16px;
+            border-radius: 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .delete-btn {
+            background: #b91c1c99;
+            border-radius: 32px;
+            padding: 4px 8px;
+            width: auto;
+            font-size: 0.7rem;
+        }
         .delete-btn:hover { background: #ff4d4d; }
         .flex-buttons { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
         .filter-bar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
         .filter-bar > div { flex: 1; min-width: 160px; }
-        @media (max-width: 700px) { th, td { font-size: 0.65rem; padding: 5px 2px; } }
         .info-note { font-size: 0.75rem; background: #0d2e3d; border-radius: 24px; padding: 8px 14px; margin-top: 10px; text-align: center; }
         .modal {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
         }
         .modal-content {
-            background: linear-gradient(135deg, #1a3a4a, #0d2a38); margin: 15% auto; padding: 25px;
-            border-radius: 28px; width: 90%; max-width: 400px; text-align: center;
+            background: linear-gradient(135deg, #1a3a4a, #0d2a38);
+            margin: 15% auto; padding: 25px; border-radius: 28px;
+            width: 90%; max-width: 400px; text-align: center;
             border: 2px solid #2bc0ff;
         }
-        .modal-buttons { display: flex; gap: 15px; margin-top: 25px; justify-content: center; flex-wrap: wrap; }
-        .modal-buttons button { flex: 1; min-width: 100px; }
-        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 25px; }
+        .close { color: #aaa; float: right; font-size: 28px; cursor: pointer; }
         .close:hover { color: white; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .alert { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: white; padding: 12px 24px; border-radius: 50px; z-index: 1001; animation: fadeOut 3s forwards; }
+        .alert {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: white; padding: 12px 24px;
+            border-radius: 50px; z-index: 1001; animation: fadeOut 3s forwards;
+        }
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-        .nome-arquivo-input { margin: 15px 0; padding: 10px; border-radius: 12px; border: 1px solid #2bc0ff; background: white; color: #042433; width: 100%; }
-        .fallback-section { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #2bc0ff; }
-        .fallback-section.show { display: block; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Controle Profissional <small>Horas Extras + Adicional Noturno (valores separados)</small></h1>
+    <h1>⚖️ Controle Profissional <small>Horas Extras + Noturno (CLT)</small></h1>
 
     <div class="card">
         <h3>💰 Salário base</h3>
@@ -97,9 +155,7 @@
                 <label>Salário mensal (R$)</label>
                 <input type="number" id="salario" placeholder="Ex: 3200" step="100">
             </div>
-            <div style="display: flex; align-items: end;">
-                <button onclick="salvarSalario()">Salvar salário</button>
-            </div>
+            <div><button onclick="salvarSalario()">Salvar salário</button></div>
         </div>
         <div id="salarioStatus" class="info-note">Salário atual: R$ 0,00</div>
     </div>
@@ -108,54 +164,50 @@
         <h3>⏱️ Adicionar período de horas extras</h3>
         <div class="grid-2col">
             <div>
-                <label>Data de INÍCIO</label>
+                <label>Data INÍCIO</label>
                 <input type="date" id="inicioData">
-                <label>Hora de INÍCIO</label>
+                <label>Hora INÍCIO</label>
                 <input type="time" id="inicioHora">
             </div>
             <div>
-                <label>Data de SAÍDA</label>
+                <label>Data SAÍDA</label>
                 <input type="date" id="fimData">
-                <label>Hora de SAÍDA</label>
+                <label>Hora SAÍDA</label>
                 <input type="time" id="fimHora">
             </div>
         </div>
-        <div class="grid-2col" style="margin-top: 10px;">
+        <div class="grid-2col">
             <select id="tipoExtra">
-                <option value="50">50% (dias úteis) - padrão</option>
+                <option value="50">50% (dias úteis)</option>
                 <option value="100">100% (domingo/feriado)</option>
             </select>
             <textarea id="descricaoExtra" rows="2" placeholder="Descrição da atividade"></textarea>
         </div>
-        <button onclick="adicionarRegistroComDatas()">Adicionar Registro</button>
-        <div class="info-note">
-            🌙 <strong>Adicional noturno automático (20%)</strong> para trabalho entre 22h e 5h.<br>
-            Domingos/feriados = adicional de 100% (cumulativo com noturno).<br>
-            Na tabela: valor extra (acréscimo de 50/100%) e adicional noturno (20%) separados.
-        </div>
+        <button onclick="adicionarRegistro()">Adicionar Registro</button>
+        <div class="info-note">🌙 Adicional noturno automático (20%) entre 22h e 5h. Domingos/feriados = 100%.</div>
     </div>
 
     <div class="card">
-        <h3>📊 Filtros e Relatório PDF</h3>
+        <h3>📊 Filtros e Relatório</h3>
         <div class="filter-bar">
             <div><label>Mês/Ano</label><input type="month" id="filtroMes" onchange="renderizarTabela()"></div>
-            <div><label>Palavra-chave</label><input type="text" id="filtroDescricao" placeholder="Ex: manutenção" onkeyup="renderizarTabela()"></div>
-            <div><label>Período (início - fim)</label><input type="date" id="filtroDataInicio" onchange="renderizarTabela()"><input type="date" id="filtroDataFim" onchange="renderizarTabela()" style="margin-top: 5px;"></div>
+            <div><label>Palavra-chave</label><input type="text" id="filtroDescricao" placeholder="Descrição" onkeyup="renderizarTabela()"></div>
+            <div><label>Período</label><input type="date" id="filtroDataInicio" onchange="renderizarTabela()"><input type="date" id="filtroDataFim" onchange="renderizarTabela()" style="margin-top: 5px;"></div>
         </div>
         <div class="flex-buttons">
             <button onclick="limparFiltros()" class="btn-outline">Limpar filtros</button>
-            <button onclick="gerarRelatorioPDFMelhorado()" class="btn-pdf" id="btnGerarPDF">📄 Gerar PDF</button>
+            <button onclick="gerarPDF()" class="btn-pdf" id="btnGerarPDF">📄 Gerar PDF</button>
             <button onclick="compartilharRelatorio()" class="btn-share">📤 Compartilhar</button>
         </div>
         <div id="filtroStatus" class="info-note">Nenhum filtro ativo</div>
     </div>
 
     <div class="card">
-        <h3>📋 Histórico de horas extras (valores discriminados)</h3>
-        <div style="overflow-x: auto; width: 100%;">
-            <table style="min-width: 900px;">
+        <h3>📋 Histórico de horas extras</h3>
+        <div class="table-wrapper">
+            <table>
                 <thead>
-                    <tr><th>Período (início → fim)</th><th>Total hrs</th><th>Hrs noturnas</th><th>Adic. Extra</th><th>Valor Extra (50/100%)</th><th>Adicional Noturno (20%)</th><th>Valor Total (R$)</th><th>Descrição</th><th></th></tr>
+                    <tr><th>Período (início → fim)</th><th>Total hrs</th><th>Hrs noturnas</th><th>Adic.%</th><th>Valor Extra (50/100%)</th><th>Adicional Noturno (20%)</th><th>Valor Total</th><th>Descrição</th><th></th></tr>
                 </thead>
                 <tbody id="tabelaRegistros"></tbody>
             </table>
@@ -164,22 +216,18 @@
     </div>
 </div>
 
-<!-- Modal PDF -->
 <div id="pdfModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="fecharModal()">&times;</span>
-        <h3>✅ PDF Gerado!</h3>
-        <p>Digite o nome do arquivo:</p>
-        <input type="text" id="nomeArquivoPDF" class="nome-arquivo-input" placeholder="relatorio_horas_extra">
+        <h3>✅ PDF Gerado</h3>
+        <p>Nome do arquivo:</p>
+        <input type="text" id="nomeArquivoPDF" class="nome-arquivo-input" placeholder="relatorio_horas">
         <div class="modal-buttons">
-            <button onclick="baixarPDF()" style="background:#28a745;">💾 Baixar PDF</button>
+            <button onclick="baixarPDF()" style="background:#28a745;">💾 Baixar</button>
             <button onclick="compartilharPDF()" style="background:#25D366;">📤 Compartilhar</button>
             <button onclick="visualizarPDF()" style="background:#17a2b8;">👁️ Visualizar</button>
         </div>
-        <div id="fallbackDownload" class="fallback-section">
-            <p style="color:#ffaa66;">⚠️ Se o download não iniciar, clique no link:</p>
-            <a id="fallbackLink" href="#" target="_blank" style="color:#2bc0ff;">Clique aqui</a>
-        </div>
+        <div id="fallbackDownload" style="display:none; margin-top:15px;"><a id="fallbackLink" href="#" target="_blank">Clique aqui se não baixar</a></div>
     </div>
 </div>
 
@@ -189,44 +237,33 @@
     let salarioMensal = parseFloat(localStorage.getItem("salarioPlus")) || 0;
     let pdfBlob = null;
 
-    // ========== FORMATAR HORAS:MINUTOS ==========
-    function formatHorasMinutos(horasDecimais) {
-        if (isNaN(horasDecimais) || horasDecimais === 0) return "0h00min";
-        const horasInteiras = Math.floor(horasDecimais);
-        const minutosDecimais = (horasDecimais - horasInteiras) * 60;
-        const minutos = Math.round(minutosDecimais);
-        if (minutos === 60) return `${horasInteiras + 1}h00min`;
-        return `${horasInteiras}h${minutos.toString().padStart(2, '0')}min`;
-    }
-
-    // ========== UTILITÁRIOS ==========
-    function mostrarAlerta(mensagem) {
-        const alerta = document.createElement('div');
-        alerta.className = 'alert';
-        alerta.textContent = mensagem;
-        document.body.appendChild(alerta);
-        setTimeout(() => alerta.remove(), 3000);
+    // Utilitários
+    function formatHorasMinutos(horasDec) {
+        if (isNaN(horasDec) || horasDec <= 0) return "0h00min";
+        let h = Math.floor(horasDec);
+        let m = Math.round((horasDec - h) * 60);
+        if (m === 60) { h++; m = 0; }
+        return `${h}h${m.toString().padStart(2,'0')}min`;
     }
 
     function formatarDataBR(dataISO) {
-        if (!dataISO) return "inválida";
-        let partes = dataISO.split("-");
-        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        if (!dataISO) return "";
+        let [ano, mes, dia] = dataISO.split("-");
+        return `${dia}/${mes}/${ano}`;
     }
 
     function isFeriadoNacional(dataISO) {
         if (!dataISO) return false;
-        let partes = dataISO.split("-");
-        let mes = parseInt(partes[1]), dia = parseInt(partes[2]);
-        const feriados = [{ mes:1, dia:1 },{ mes:4, dia:21 },{ mes:5, dia:1 },{ mes:9, dia:7 },{ mes:10, dia:12 },{ mes:11, dia:2 },{ mes:11, dia:15 },{ mes:12, dia:25 }];
-        return feriados.some(f => f.mes === mes && f.dia === dia);
+        let [ano, mes, dia] = dataISO.split("-").map(Number);
+        const feriados = [[1,1],[4,21],[5,1],[9,7],[10,12],[11,2],[11,15],[12,25]];
+        return feriados.some(([m,d]) => m === mes && d === dia);
     }
 
-    // ========== CÁLCULO DE HORAS NOTURNAS (minuto a minuto) ==========
+    // Cálculo de horas noturnas (minuto a minuto entre 22h e 5h)
     function calcularHorasNoturnas(startDate, startTime, endDate, endTime) {
         let inicio = new Date(`${startDate}T${startTime}:00`);
         let fim = new Date(`${endDate}T${endTime}:00`);
-        if (isNaN(inicio) || isNaN(fim) || fim <= inicio) return 0;
+        if (fim <= inicio) return 0;
         let minutosNoturnos = 0;
         let current = new Date(inicio);
         while (current < fim) {
@@ -237,177 +274,117 @@
         return minutosNoturnos / 60;
     }
 
-    // ========== DECOMPOSIÇÃO DOS VALORES (Extra puro e Adicional Noturno puro) ==========
-    // Retorna { valorExtraPuro, valorAdicionalNoturno, valorTotal }
-    function decomporValores(horasTotais, horasNoturnas, percentualExtra, salarioMensal) {
-        if (salarioMensal <= 0) return { valorExtraPuro: 0, valorAdicionalNoturno: 0, valorTotal: 0 };
-        const valorHoraBase = salarioMensal / 220;
+    // Decomposição dos valores: extra puro e adicional noturno puro
+    function decomporValores(horasTotais, horasNoturnas, percExtra, salario) {
+        if (salario <= 0) return { valorExtraPuro: 0, valorAdicionalNoturno: 0, valorTotal: 0 };
+        const valorHoraBase = salario / 220;
         const horasDiurnas = horasTotais - horasNoturnas;
-        // Base (sem adicionais)
-        const valorBaseDiurno = horasDiurnas * valorHoraBase;
-        const valorBaseNoturno = horasNoturnas * valorHoraBase;
-        // Adicional noturno puro (20% sobre a hora normal)
-        const adicionalNoturnoPuro = horasNoturnas * valorHoraBase * 0.2;
-        // Valor extra puro (acréscimo do percentual sobre hora base, mas incluindo o adicional noturno na base quando for noturno)
-        // Seguindo a CLT: hora extra noturna = (hora normal + 20%) + (hora normal + 20%) * extra%
-        // O acréscimo devido ao extra é: (horasDiurnas * valorHoraBase * extra/100) + (horasNoturnas * valorHoraBase * 1.2 * extra/100)
-        const valorExtraPuro = (horasDiurnas * valorHoraBase * (percentualExtra/100)) + (horasNoturnas * valorHoraBase * 1.2 * (percentualExtra/100));
-        const valorTotal = valorBaseDiurno + valorBaseNoturno + adicionalNoturnoPuro + valorExtraPuro;
-        return { valorExtraPuro, valorAdicionalNoturno: adicionalNoturnoPuro, valorTotal };
+        const baseDiurno = horasDiurnas * valorHoraBase;
+        const baseNoturno = horasNoturnas * valorHoraBase;
+        const adicionalNoturnoPuro = horasNoturnas * valorHoraBase * 0.20;
+        // Extra puro: incide sobre a base normal + adicional noturno (conforme CLT)
+        const extraPuro = (horasDiurnas * valorHoraBase * (percExtra/100)) + (horasNoturnas * valorHoraBase * 1.2 * (percExtra/100));
+        const valorTotal = baseDiurno + baseNoturno + adicionalNoturnoPuro + extraPuro;
+        return { valorExtraPuro: extraPuro, valorAdicionalNoturno: adicionalNoturnoPuro, valorTotal };
     }
 
-    // ========== MIGRAÇÃO DE REGISTROS ANTIGOS (recalcula valores e adiciona horasNoturnas) ==========
-    function migrarRegistrosAntigos() {
-        let alterado = false;
-        for (let reg of registros) {
-            if (reg.horasNoturnas === undefined) {
-                const noturnas = calcularHorasNoturnas(reg.startDate, reg.startTime, reg.endDate, reg.endTime);
-                reg.horasNoturnas = noturnas;
-                alterado = true;
-            }
-            if (reg.adicionalFinal === undefined) reg.adicionalFinal = 50;
-            // Recalculamos os valores para garantir compatibilidade
-            const { valorExtraPuro, valorAdicionalNoturno, valorTotal } = decomporValores(reg.horas, reg.horasNoturnas, reg.adicionalFinal, salarioMensal);
-            reg.valorExtra = valorExtraPuro;
-            reg.valorNoturnoAdicional = valorAdicionalNoturno;
-            reg.valor = valorTotal;
-            alterado = true;
-        }
-        if (alterado) localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-    }
-
-    // ========== ADICIONAR REGISTRO ==========
-    function adicionarRegistroComDatas() {
+    // Adicionar registro
+    function adicionarRegistro() {
         let inicioData = document.getElementById("inicioData").value;
         let inicioHora = document.getElementById("inicioHora").value;
         let fimData = document.getElementById("fimData").value;
         let fimHora = document.getElementById("fimHora").value;
-        let tipoSelecionado = parseInt(document.getElementById("tipoExtra").value);
+        let tipo = parseInt(document.getElementById("tipoExtra").value);
         let descricao = document.getElementById("descricaoExtra").value.trim();
 
         if (!inicioData || !inicioHora || !fimData || !fimHora) {
-            mostrarAlerta("Preencha todas as datas e horários.");
+            alert("Preencha todas as datas/horários");
             return;
         }
         let dtIni = new Date(`${inicioData}T${inicioHora}:00`);
         let dtFim = new Date(`${fimData}T${fimHora}:00`);
-        if (dtFim <= dtIni) {
-            mostrarAlerta("A data/hora de saída deve ser posterior ao início.");
-            return;
-        }
-        let horasTrabalhadas = (dtFim - dtIni) / (1000 * 3600);
-        if (horasTrabalhadas <= 0) return;
-
+        if (dtFim <= dtIni) { alert("Saída deve ser posterior ao início"); return; }
+        let horasTotais = (dtFim - dtIni) / 3600000;
         let horasNoturnas = calcularHorasNoturnas(inicioData, inicioHora, fimData, fimHora);
-        let dataObj = new Date(inicioData);
-        let isDomingo = dataObj.getDay() === 0;
-        let isFeriado = isFeriadoNacional(inicioData);
-        let adicionalFinal = tipoSelecionado;
-        if (isDomingo || isFeriado) adicionalFinal = 100;
+        let isDomingo = new Date(inicioData).getDay() === 0;
+        let percFinal = (isDomingo || isFeriadoNacional(inicioData)) ? 100 : tipo;
+        let { valorExtraPuro, valorAdicionalNoturno, valorTotal } = decomporValores(horasTotais, horasNoturnas, percFinal, salarioMensal);
 
-        const { valorExtraPuro, valorAdicionalNoturno, valorTotal } = decomporValores(horasTrabalhadas, horasNoturnas, adicionalFinal, salarioMensal);
-
-        let novoRegistro = {
-            id: Date.now() + Math.random() * 1000,
-            startDate: inicioData,
-            startTime: inicioHora,
-            endDate: fimData,
-            endTime: fimHora,
-            horas: horasTrabalhadas,
-            horasNoturnas: horasNoturnas,
-            adicionalFinal: adicionalFinal,
+        let novo = {
+            id: Date.now(),
+            startDate: inicioData, startTime: inicioHora,
+            endDate: fimData, endTime: fimHora,
+            horas: horasTotais, horasNoturnas: horasNoturnas,
+            adicionalFinal: percFinal,
             valorExtra: valorExtraPuro,
             valorNoturnoAdicional: valorAdicionalNoturno,
             valor: valorTotal,
             descricao: descricao || "sem descrição"
         };
-        registros.push(novoRegistro);
+        registros.push(novo);
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-        limparFormularioBasico();
         renderizarTabela();
-        mostrarAlerta("Registro adicionado com valores separados!");
-    }
-
-    function limparFormularioBasico() {
-        let hoje = new Date().toISOString().slice(0,10);
-        let amanha = new Date(Date.now()+86400000).toISOString().slice(0,10);
-        document.getElementById("inicioData").value = hoje;
-        document.getElementById("inicioHora").value = "19:15";
-        document.getElementById("fimData").value = amanha;
-        document.getElementById("fimHora").value = "03:10";
-        document.getElementById("descricaoExtra").value = "";
-        document.getElementById("tipoExtra").value = "50";
+        alert("Registro adicionado!");
     }
 
     function removerRegistro(idx) {
-        if(confirm("Excluir este registro?")){
-            registros.splice(idx,1);
+        if (confirm("Excluir?")) {
+            registros.splice(idx, 1);
             localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
             renderizarTabela();
         }
     }
 
-    // Filtros
     function aplicarFiltros() {
         let filtroMes = document.getElementById("filtroMes").value;
         let filtroDesc = document.getElementById("filtroDescricao").value.toLowerCase();
-        let dataInicio = document.getElementById("filtroDataInicio").value;
+        let dataIni = document.getElementById("filtroDataInicio").value;
         let dataFim = document.getElementById("filtroDataFim").value;
-        let filtered = registros.filter(reg => {
-            if(filtroMes && !reg.startDate.startsWith(filtroMes)) return false;
-            if(filtroDesc && !reg.descricao.toLowerCase().includes(filtroDesc)) return false;
-            if(dataInicio && reg.startDate < dataInicio) return false;
-            if(dataFim && reg.startDate > dataFim) return false;
+        return registros.filter(r => {
+            if (filtroMes && !r.startDate.startsWith(filtroMes)) return false;
+            if (filtroDesc && !r.descricao.toLowerCase().includes(filtroDesc)) return false;
+            if (dataIni && r.startDate < dataIni) return false;
+            if (dataFim && r.startDate > dataFim) return false;
             return true;
         });
-        let ativos = [];
-        if(filtroMes) ativos.push(`Mês: ${filtroMes}`);
-        if(filtroDesc) ativos.push(`Descrição: "${filtroDesc}"`);
-        if(dataInicio||dataFim) ativos.push(`Período: ${dataInicio||'início'} até ${dataFim||'hoje'}`);
-        document.getElementById("filtroStatus").innerHTML = ativos.length ? `Filtros: ${ativos.join(' | ')}` : `Nenhum filtro ativo`;
-        return filtered;
     }
 
     function renderizarTabela() {
-        let body = document.getElementById("tabelaRegistros");
-        if(!body) return;
-        body.innerHTML = "";
-        let filtered = aplicarFiltros();
-        let totalHoras = 0, totalNoturnas = 0, totalExtra = 0, totalNoturnoAdicional = 0, totalGeral = 0;
-        if(filtered.length === 0){
-            body.innerHTML = `<tr><td colspan='9' style='text-align:center;padding:25px;'>Nenhum registro encontrado.</td></tr>`;
-            document.getElementById("totaisContainer").innerHTML = `📊 Total: 0h00min | R$ 0,00 (Extra: R$ 0,00 | Noturno: R$ 0,00)`;
-            return;
-        }
-        filtered.forEach(reg => {
+        let tbody = document.getElementById("tabelaRegistros");
+        tbody.innerHTML = "";
+        let filtrados = aplicarFiltros();
+        let totalHoras = 0, totalNoturnas = 0, totalExtra = 0, totalNotAd = 0, totalGeral = 0;
+        filtrados.forEach(reg => {
             totalHoras += reg.horas;
-            totalNoturnas += reg.horasNoturnas || 0;
-            totalExtra += reg.valorExtra || 0;
-            totalNoturnoAdicional += reg.valorNoturnoAdicional || 0;
+            totalNoturnas += reg.horasNoturnas;
+            totalExtra += reg.valorExtra;
+            totalNotAd += reg.valorNoturnoAdicional;
             totalGeral += reg.valor;
-
             let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime} → ${formatarDataBR(reg.endDate)} ${reg.endTime}`;
-            let badgeExtra = `<span class="badge">${reg.adicionalFinal}%</span>`;
-            let idxGlobal = registros.findIndex(r => r.id === reg.id);
-            let tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td style="font-size:0.75rem;">${periodo}</td>
-                <td><strong>${formatHorasMinutos(reg.horas)}</strong></td>
+            let row = `<tr>
+                <td style="text-align:left;">${periodo}</td>
+                <td>${formatHorasMinutos(reg.horas)}</td>
                 <td>${reg.horasNoturnas ? formatHorasMinutos(reg.horasNoturnas) : '0h00min'}</td>
-                <td>${badgeExtra}</td>
-                <td style="color:#ffd966;">R$ ${(reg.valorExtra || 0).toFixed(2)}</td>
-                <td style="color:#ffb347;">R$ ${(reg.valorNoturnoAdicional || 0).toFixed(2)}</td>
-                <td style="color:#c3e88d;">R$ ${reg.valor.toFixed(2)}</td>
-                <td>${reg.descricao.length>25?reg.descricao.substring(0,22)+'...':reg.descricao}</td>
-                <td><button class="delete-btn" onclick="removerRegistro(${idxGlobal})">Excluir</button></td>
-            `;
-            body.appendChild(tr);
+                <td><span class="badge">${reg.adicionalFinal}%</span></td>
+                <td>R$ ${reg.valorExtra.toFixed(2)}</td>
+                <td>R$ ${reg.valorNoturnoAdicional.toFixed(2)}</td>
+                <td><strong>R$ ${reg.valor.toFixed(2)}</strong></td>
+                <td style="text-align:left; font-size:0.75rem;">${reg.descricao.substring(0,30)}</td>
+                <td><button class="delete-btn" onclick="removerRegistro(${registros.findIndex(r=>r.id===reg.id)})">Excluir</button></td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
         });
+        let status = document.getElementById("filtroStatus");
+        let filtrosAtivos = [];
+        if(document.getElementById("filtroMes").value) filtrosAtivos.push(`Mês: ${document.getElementById("filtroMes").value}`);
+        if(document.getElementById("filtroDescricao").value) filtrosAtivos.push(`Descrição`);
+        if(document.getElementById("filtroDataInicio").value || document.getElementById("filtroDataFim").value) filtrosAtivos.push(`Período`);
+        status.innerHTML = filtrosAtivos.length ? `Filtros: ${filtrosAtivos.join(' | ')}` : "Nenhum filtro ativo";
         document.getElementById("totaisContainer").innerHTML = `
             📊 <strong>Total horas:</strong> ${formatHorasMinutos(totalHoras)} (sendo ${formatHorasMinutos(totalNoturnas)} noturnas)<br>
             💰 <strong>Valor Extra (50/100%):</strong> R$ ${totalExtra.toFixed(2)} &nbsp;|&nbsp;
-            🌙 <strong>Adicional Noturno (20%):</strong> R$ ${totalNoturnoAdicional.toFixed(2)} &nbsp;|&nbsp;
-            🧾 <strong>Soma Total:</strong> R$ ${totalGeral.toFixed(2)} &nbsp;|&nbsp; ${filtered.length} registro(s)
+            🌙 <strong>Adicional Noturno (20%):</strong> R$ ${totalNotAd.toFixed(2)} &nbsp;|&nbsp;
+            🧾 <strong>Soma Total:</strong> R$ ${totalGeral.toFixed(2)} &nbsp;|&nbsp; ${filtrados.length} registro(s)
         `;
     }
 
@@ -419,173 +396,147 @@
         renderizarTabela();
     }
 
-    // Salário
     function salvarSalario() {
-        let valor = parseFloat(document.getElementById("salario").value);
-        if(isNaN(valor)) valor=0;
-        salarioMensal = valor;
+        let val = parseFloat(document.getElementById("salario").value);
+        if (isNaN(val)) val = 0;
+        salarioMensal = val;
         localStorage.setItem("salarioPlus", salarioMensal);
-        atualizarDisplaySalario();
-        // Recalcula todos os registros
-        for(let reg of registros){
-            const { valorExtraPuro, valorAdicionalNoturno, valorTotal } = decomporValores(reg.horas, reg.horasNoturnas || 0, reg.adicionalFinal, salarioMensal);
+        for (let reg of registros) {
+            let { valorExtraPuro, valorAdicionalNoturno, valorTotal } = decomporValores(reg.horas, reg.horasNoturnas, reg.adicionalFinal, salarioMensal);
             reg.valorExtra = valorExtraPuro;
             reg.valorNoturnoAdicional = valorAdicionalNoturno;
             reg.valor = valorTotal;
         }
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+        document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
         renderizarTabela();
-        mostrarAlerta(`Salário atualizado: R$ ${salarioMensal.toFixed(2)}. Valores recalculados.`);
+        alert("Salário salvo e valores recalculados!");
     }
 
-    function atualizarDisplaySalario() {
-        let inputSalario = document.getElementById("salario");
-        if(inputSalario) inputSalario.value = salarioMensal;
-        let statusSpan = document.getElementById("salarioStatus");
-        statusSpan.innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Valor/hora: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
-    }
-
-    // ========== PDF MELHORADO COM VALORES SEPARADOS ==========
-    async function gerarRelatorioPDFMelhorado(apenasCompartilhar = false) {
-        if (salarioMensal <= 0) { mostrarAlerta("Defina o salário mensal antes."); return; }
+    // PDF em paisagem com colunas ajustadas
+    async function gerarPDF() {
+        if (salarioMensal <= 0) { alert("Defina o salário antes."); return; }
         let dados = aplicarFiltros();
-        if(dados.length===0){ mostrarAlerta("Nenhum registro com os filtros atuais."); return; }
-        const btn = document.getElementById('btnGerarPDF');
-        btn.innerHTML = '<span class="loading"></span> Gerando...';
+        if (dados.length === 0) { alert("Nenhum registro com os filtros atuais."); return; }
+        let btn = document.getElementById("btnGerarPDF");
+        btn.innerHTML = '<span class="loading"></span>';
         btn.disabled = true;
-        setTimeout(()=>{
-            try{
-                const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+        setTimeout(() => {
+            try {
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-                let y = 22; const mx = 10;
-                doc.setFillColor(22,60,85); doc.rect(0,0,pw,30,'F');
-                doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS - VALORES DISCRIMINADOS", pw/2, 15, {align:"center"});
-                doc.setFontSize(8); doc.text("Adicional noturno (20%) + Adicional Extra (50/100%) - Conforme CLT", pw/2, 25, {align:"center"});
-                y=40;
-                doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont("helvetica","bold");
+                let y = 25, mx = 10;
+                doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F');
+                doc.setTextColor(255,255,255); doc.setFontSize(14);
+                doc.text("RELATÓRIO DE HORAS EXTRAS COM DISCRIMINAÇÃO", pw/2, 15, { align: "center" });
+                doc.setFontSize(8); doc.text("Adicional noturno (20%) + Extra 50/100% - CLT", pw/2, 24, { align: "center" });
+                y = 38;
+                doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9);
                 doc.text("INFORMAÇÕES GERAIS", mx, y); y+=5;
                 doc.setFont("helvetica","normal"); doc.setFontSize(8);
                 doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4;
                 doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4;
                 doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8;
-
-                // Tabela com colunas adicionais
-                const colX = { periodo: mx, totalHrs: mx+55, noturnas: mx+75, extraPerc: mx+95, valorExtra: mx+110, valorNoturno: mx+135, valorTotal: mx+160, desc: mx+185 };
-                function cabecalho(){
+                
+                const col = { per: mx, total: mx+55, not: mx+70, perc: mx+85, vExtra: mx+100, vNot: mx+125, vTotal: mx+150, desc: mx+175 };
+                function header() {
                     doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F');
                     doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold");
-                    doc.text("Período", colX.periodo+1, y+5);
-                    doc.text("Total", colX.totalHrs+1, y+5);
-                    doc.text("H.Not", colX.noturnas+1, y+5);
-                    doc.text("Ad%", colX.extraPerc+1, y+5);
-                    doc.text("V.Extra", colX.valorExtra+1, y+5);
-                    doc.text("V.Noturno", colX.valorNoturno+1, y+5);
-                    doc.text("V.Total", colX.valorTotal+1, y+5);
-                    doc.text("Desc", colX.desc+1, y+5);
+                    doc.text("Período", col.per+1, y+5);
+                    doc.text("Total", col.total+1, y+5);
+                    doc.text("Not.", col.not+1, y+5);
+                    doc.text("%", col.perc+1, y+5);
+                    doc.text("V.Extra", col.vExtra+1, y+5);
+                    doc.text("V.Not", col.vNot+1, y+5);
+                    doc.text("V.Total", col.vTotal+1, y+5);
+                    doc.text("Descrição", col.desc+1, y+5);
                     y+=7;
                     doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5);
                 }
-                const linhaH = 5;
-                function quebrarPagina(needed){
-                    if(y+needed > ph-20){
-                        doc.addPage(); y=20; cabecalho(); return true;
-                    } return false;
-                }
-                cabecalho();
-                let totalHoras=0, totalNoturnas=0, somaExtra=0, somaNoturno=0, somaTotal=0;
-                for(let reg of dados){
-                    totalHoras+=reg.horas; totalNoturnas+=reg.horasNoturnas||0;
-                    somaExtra+=reg.valorExtra||0; somaNoturno+=reg.valorNoturnoAdicional||0; somaTotal+=reg.valor;
-                    quebrarPagina(linhaH);
-                    let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime}→${formatarDataBR(reg.endDate)} ${reg.endTime}`;
-                    doc.text(periodo, colX.periodo+1, y+4);
-                    doc.text(formatHorasMinutos(reg.horas), colX.totalHrs+1, y+4);
-                    doc.text(formatHorasMinutos(reg.horasNoturnas||0), colX.noturnas+1, y+4);
-                    doc.text(`${reg.adicionalFinal}%`, colX.extraPerc+1, y+4);
-                    doc.text(`R$ ${(reg.valorExtra||0).toFixed(2)}`, colX.valorExtra+1, y+4);
-                    doc.text(`R$ ${(reg.valorNoturnoAdicional||0).toFixed(2)}`, colX.valorNoturno+1, y+4);
-                    doc.text(`R$ ${reg.valor.toFixed(2)}`, colX.valorTotal+1, y+4);
-                    let desc = reg.descricao.length>20?reg.descricao.substring(0,17)+"...":reg.descricao;
-                    doc.text(desc, colX.desc+1, y+4);
+                header();
+                let totalH=0, totalN=0, somaEx=0, somaNo=0, somaTot=0;
+                const linhaH = 5.5;
+                for (let r of dados) {
+                    totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor;
+                    if (y+linhaH > ph-18) { doc.addPage(); y=20; header(); }
+                    let periodo = `${formatarDataBR(r.startDate)} ${r.startTime}→${formatarDataBR(r.endDate)} ${r.endTime}`;
+                    doc.text(periodo, col.per+1, y+4);
+                    doc.text(formatHorasMinutos(r.horas), col.total+1, y+4);
+                    doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4);
+                    doc.text(`${r.adicionalFinal}%`, col.perc+1, y+4);
+                    doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4);
+                    doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4);
+                    doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4);
+                    let desc = r.descricao.length>18?r.descricao.substring(0,15)+"...":r.descricao;
+                    doc.text(desc, col.desc+1, y+4);
                     y+=linhaH;
                 }
                 y+=6;
-                if(y>ph-30){ doc.addPage(); y=20; }
+                if (y > ph-25) { doc.addPage(); y=20; }
                 doc.setFont("helvetica","bold"); doc.setFontSize(10);
                 doc.text("RESUMO FINAL", mx, y); y+=5;
                 doc.setFontSize(9); doc.setFont("helvetica","normal");
-                doc.text(`Total horas: ${formatHorasMinutos(totalHoras)} (noturnas: ${formatHorasMinutos(totalNoturnas)})`, mx, y); y+=4.5;
-                doc.text(`Soma Valor Extra (50/100%): R$ ${somaExtra.toFixed(2)}`, mx, y); y+=4.5;
-                doc.text(`Soma Adicional Noturno (20%): R$ ${somaNoturno.toFixed(2)}`, mx, y); y+=4.5;
-                doc.text(`Soma TOTAL GERAL: R$ ${somaTotal.toFixed(2)}`, mx, y); y+=6;
+                doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5;
+                doc.text(`Soma Valor Extra (50/100%): R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5;
+                doc.text(`Soma Adicional Noturno (20%): R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5;
+                doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); y+=6;
                 doc.setFontSize(7); doc.setTextColor(100);
-                doc.text("* Adicional noturno de 20% sobre a hora normal (22h às 5h).", mx, y); y+=4;
-                doc.text("* Domingos/feriados = adicional 100% cumulativo com noturno.", mx, y);
-                const paginas = doc.internal.getNumberOfPages();
-                for(let i=1;i<=paginas;i++){
-                    doc.setPage(i); doc.setFontSize(7); doc.setTextColor(130,140,155);
-                    doc.text(`Página ${i} de ${paginas}`, pw-18, ph-10);
-                    doc.text("Sistema de Horas Extras + Noturno c/ discriminação", mx, ph-10);
+                doc.text("* Adicional noturno de 20% calculado minuto a minuto entre 22h e 5h.", mx, y);
+                const pag = doc.internal.getNumberOfPages();
+                for (let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.setTextColor(130,140,155);
+                    doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10);
+                    doc.text("Sistema de Horas Extras", mx, ph-10);
                 }
                 pdfBlob = doc.output('blob');
-                let dataArq = new Date().toISOString().slice(0,10).replace(/-/g,'');
-                document.getElementById("nomeArquivoPDF").value = `relatorio_discriminado_${dataArq}`;
-                if(apenasCompartilhar) compartilharPDF();
-                else document.getElementById("pdfModal").style.display = "block";
-                mostrarAlerta("PDF gerado com sucesso!");
-            }catch(e){ console.error(e); mostrarAlerta("Erro ao gerar PDF"); }
-            finally{ btn.innerHTML = "📄 Gerar PDF"; btn.disabled = false; }
-        },100);
+                document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`;
+                document.getElementById("pdfModal").style.display = "block";
+            } catch(e) { alert("Erro no PDF: "+e); }
+            finally { btn.innerHTML = "📄 Gerar PDF"; btn.disabled = false; }
+        }, 100);
     }
 
-    // Modal e compartilhamento
-    function fecharModal() { document.getElementById("pdfModal").style.display = "none"; document.getElementById("fallbackDownload").classList.remove("show"); }
+    function fecharModal() { document.getElementById("pdfModal").style.display = "none"; }
     function baixarPDF() {
-        if(!pdfBlob){ mostrarAlerta("PDF não encontrado."); return; }
+        if (!pdfBlob) return;
         let nome = document.getElementById("nomeArquivoPDF").value.trim() || "relatorio.pdf";
-        if(!nome.endsWith(".pdf")) nome+=".pdf";
+        if (!nome.endsWith(".pdf")) nome += ".pdf";
         const url = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click();
-        setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },100);
+        const a = document.createElement('a'); a.href = url; a.download = nome;
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
         fecharModal();
-        mostrarAlerta("Download iniciado");
     }
     function compartilharPDF() {
-        if(!pdfBlob){ mostrarAlerta("PDF não gerado."); return; }
-        const nome = document.getElementById("nomeArquivoPDF").value.trim() || "relatorio_horas.pdf";
-        const file = new File([pdfBlob], nome, { type:"application/pdf" });
-        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-            navigator.share({ title:"Relatório Horas Extras", files:[file] }).then(()=>fecharModal()).catch(()=>baixarPDF());
-        } else { mostrarAlerta("Compartilhamento não suportado, baixando..."); baixarPDF(); }
+        if (!pdfBlob) return;
+        let nome = document.getElementById("nomeArquivoPDF").value.trim() + ".pdf";
+        let file = new File([pdfBlob], nome, { type: "application/pdf" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ title: "Relatório Horas Extras", files: [file] }).catch(() => baixarPDF());
+        } else baixarPDF();
     }
-    function visualizarPDF() { if(pdfBlob){ window.open(URL.createObjectURL(pdfBlob), '_blank'); fecharModal(); } else mostrarAlerta("PDF não disponível"); }
-    function compartilharRelatorio() { if(pdfBlob) compartilharPDF(); else gerarRelatorioPDFMelhorado(true); }
+    function visualizarPDF() { if(pdfBlob) window.open(URL.createObjectURL(pdfBlob), '_blank'); fecharModal(); }
+    function compartilharRelatorio() { if(pdfBlob) compartilharPDF(); else gerarPDF(); }
 
-    // Inicialização
-    function inicializar() {
-        migrarRegistrosAntigos();
-        atualizarDisplaySalario();
-        renderizarTabela();
+    window.onload = () => {
         let hoje = new Date().toISOString().slice(0,10);
         let amanha = new Date(Date.now()+86400000).toISOString().slice(0,10);
         document.getElementById("inicioData").value = hoje;
         document.getElementById("inicioHora").value = "19:15";
         document.getElementById("fimData").value = amanha;
         document.getElementById("fimHora").value = "03:10";
-    }
-
-    window.adicionarRegistroComDatas = adicionarRegistroComDatas;
+        salvarSalario(); // apenas para atualizar display
+        renderizarTabela();
+    };
+    window.adicionarRegistro = adicionarRegistro;
     window.removerRegistro = removerRegistro;
     window.salvarSalario = salvarSalario;
-    window.renderizarTabela = renderizarTabela;
     window.limparFiltros = limparFiltros;
-    window.gerarRelatorioPDFMelhorado = gerarRelatorioPDFMelhorado;
+    window.gerarPDF = gerarPDF;
     window.fecharModal = fecharModal;
     window.baixarPDF = baixarPDF;
     window.compartilharPDF = compartilharPDF;
     window.compartilharRelatorio = compartilharRelatorio;
     window.visualizarPDF = visualizarPDF;
-    inicializar();
 </script>
 </body>
 </html>
