@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras + Banco de Horas (16 ao 15)</title>
+    <title>Horas Extras + Banco de Horas (Automático + Manual)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -22,7 +22,7 @@
         .btn-pdf { background: linear-gradient(135deg,#d9534f,#b52b27); }
         .btn-share { background: linear-gradient(135deg,#25D366,#128C7E); }
         .checkbox-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-        .checkbox-row label { margin: 0; font-size: 0.9rem; }
+        .checkbox-row label { margin: 0; }
         .checkbox-row input { width: auto; margin: 0; transform: scale(1.2); }
         .table-wrapper { overflow-x: auto; width: 100%; }
         table { width: 100%; min-width: 1000px; table-layout: fixed; border-collapse: collapse; font-size: 0.8rem; }
@@ -30,7 +30,6 @@
         th { background: #0a374b80; }
         td:first-child { width: 23%; white-space: normal; word-break: break-word; text-align: left; }
         .badge { background: #0e5d7a; padding: 4px 8px; border-radius: 50px; font-size: 0.7rem; }
-        .badge-manual { background: #9e6d0b; }
         .total { background: #021c28aa; padding: 16px; border-radius: 28px; text-align: center; margin-top: 1rem; }
         .delete-btn { background: #b91c1c99; padding: 4px 8px; width: auto; }
         .flex-buttons { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
@@ -48,7 +47,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Horas Extras + Banco de Horas <small>Período 16→15</small></h1>
+    <h1>⚖️ Horas Extras + Banco de Horas <small>Automático + Manual</small></h1>
 
     <div class="card">
         <h3>💰 Salário base</h3>
@@ -60,7 +59,7 @@
     </div>
 
     <div class="card">
-        <h3>⏱️ Adicionar período</h3>
+        <h3>⏱️ Adicionar período de horas extras</h3>
         <div class="grid-2col">
             <div><label>Data INÍCIO</label><input type="date" id="inicioData"><label>Hora INÍCIO</label><input type="time" id="inicioHora"></div>
             <div><label>Data SAÍDA</label><input type="date" id="fimData"><label>Hora SAÍDA</label><input type="time" id="fimHora"></div>
@@ -72,6 +71,33 @@
         <div><textarea id="descricaoExtra" rows="2" placeholder="Descrição"></textarea></div>
         <button onclick="adicionarRegistro()">Adicionar Registro</button>
         <div class="info-note">🌙 Adicional noturno (20%) automático. Domingos/feriados nacionais = 100%; dias úteis = 50%; checkbox força 100%.</div>
+    </div>
+
+    <div class="card">
+        <h3>🏦 Banco de Horas (excedente automático >40h + lançamentos manuais)</h3>
+        <div class="grid-2col" style="margin-bottom: 1rem;">
+            <div>
+                <label>Lançamento manual (horas)</label>
+                <input type="number" id="horasManual" step="0.25" placeholder="Ex: 2.5 ou -1.5">
+                <label>Data do lançamento</label>
+                <input type="date" id="dataManual" value="">
+                <label>Motivo</label>
+                <input type="text" id="motivoManual" placeholder="Compensação, ajuste, etc.">
+            </div>
+            <div style="display: flex; align-items: end;">
+                <button onclick="adicionarLancamentoManual()">➕ Adicionar ao banco</button>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table style="min-width: 600px;">
+                <thead><tr><th>Data</th><th>Horas (positivo = crédito, negativo = débito)</th><th>Motivo</th><th style="width: 60px;"></th></tr></thead>
+                <tbody id="tabelaLancamentosManuais"></tbody>
+            </table>
+        </div>
+        <div id="bancoTotal" class="total"></div>
+        <div class="flex-buttons">
+            <button onclick="gerarPDFBancoHoras()" class="btn-pdf">📄 Relatório do Banco (automático + manual)</button>
+        </div>
     </div>
 
     <div class="card">
@@ -90,21 +116,6 @@
     </div>
 
     <div class="card">
-        <h3>🏦 Banco de Horas (Excedente mensal > 40h)</h3>
-        <div class="flex-buttons">
-            <button onclick="atualizarBancoHoras()" class="btn-outline">🔄 Atualizar banco agora</button>
-            <button onclick="gerarPDFBancoHoras()" class="btn-pdf">📄 Relatório do Banco</button>
-        </div>
-        <div class="table-wrapper">
-            <table style="min-width: 400px;">
-                <thead><tr><th>Competência (16/MM/AAAA a 15/MM/AAAA)</th><th>Horas no período</th><th>Excedente (>40h)</th><th>Acumulado no banco</th></tr></thead>
-                <tbody id="tabelaBancoHoras"></tbody>
-            </table>
-        </div>
-        <div id="bancoTotal" class="total"></div>
-    </div>
-
-    <div class="card">
         <h3>📋 Histórico de Horas Extras</h3>
         <div class="table-wrapper">
             <table>
@@ -116,14 +127,14 @@
     </div>
 </div>
 
-<!-- Modal para PDF -->
+<!-- Modal PDF -->
 <div id="pdfModal" class="modal"><div class="modal-content"><span class="close" onclick="fecharModal()">&times;</span><h3>PDF Gerado</h3><input type="text" id="nomeArquivoPDF" placeholder="nome do arquivo" style="margin:15px 0"><div class="modal-buttons"><button onclick="baixarPDF()">💾 Baixar</button><button onclick="compartilharPDF()">📤 Compartilhar</button><button onclick="visualizarPDF()">👁️ Visualizar</button></div></div></div>
 
 <script>
     const { jsPDF } = window.jspdf;
     let registros = JSON.parse(localStorage.getItem("horasExtrasPlus")) || [];
     let salarioMensal = parseFloat(localStorage.getItem("salarioPlus")) || 0;
-    let bancoHoras = JSON.parse(localStorage.getItem("bancoHoras")) || []; // { competencia: "03/2026", horasExcedente: 5.5 }
+    let lancamentosManuais = JSON.parse(localStorage.getItem("lancamentosManuais")) || []; // { data, horas, motivo, id }
     let pdfBlob = null;
 
     // ========== FERIADOS NACIONAIS ==========
@@ -135,11 +146,11 @@
 
     // ========== UTILITÁRIOS ==========
     function formatHorasMinutos(h) {
-        if (isNaN(h) || h <= 0) return "0h00min";
-        let horas = Math.floor(h);
-        let mins = Math.round((h - horas) * 60);
+        if (isNaN(h) || h === 0) return "0h00min";
+        let horas = Math.floor(Math.abs(h));
+        let mins = Math.round((Math.abs(h) - horas) * 60);
         if (mins === 60) { horas++; mins = 0; }
-        return `${horas}h${mins.toString().padStart(2,'0')}min`;
+        return `${h < 0 ? '-' : ''}${horas}h${mins.toString().padStart(2,'0')}min`;
     }
     function formatarDataBR(d) { if(!d) return ""; let [a,m,dia] = d.split("-"); return `${dia}/${m}/${a}`; }
 
@@ -159,10 +170,8 @@
         let inicio = new Date(`${startDate}T${startTime}:00`);
         let fim = new Date(`${endDate}T${endTime}:00`);
         if (fim <= inicio) return { totalHoras:0, horasNoturnas:0, valorExtraPuro:0, valorAdicionalNoturno:0, valorTotal:0 };
-
         const valorHoraBase = salarioMensal / 220;
         let acumHoras = 0, acumNoturnas = 0, acumExtraPuro = 0, acumNoturnoPuro = 0;
-
         let current = new Date(inicio);
         while (current < fim) {
             let inicioMinuto = new Date(current);
@@ -171,20 +180,16 @@
             if (fimMinuto > fim) fimMinuto = fim;
             let duracaoMinuto = (fimMinuto - inicioMinuto) / 60000;
             let horaNoPeriodo = duracaoMinuto / 60;
-
             let dataStr = inicioMinuto.toISOString().slice(0,10);
             let isDomingo = inicioMinuto.getDay() === 0;
             let isFeriadoNac = isFeriadoNacional(dataStr);
             let percExtra;
             if (forcarFeriado) percExtra = 100;
             else percExtra = (isDomingo || isFeriadoNac) ? 100 : 50;
-
             let isNoturno = (inicioMinuto.getHours() >= 22 || inicioMinuto.getHours() < 5);
             let valorBaseMinuto = valorHoraBase * horaNoPeriodo;
             let adicionalNoturnoMinuto = isNoturno ? valorBaseMinuto * 0.20 : 0;
             let valorExtraMinuto = isNoturno ? (valorBaseMinuto * 1.2) * (percExtra / 100) : valorBaseMinuto * (percExtra / 100);
-            let valorTotalMinuto = valorBaseMinuto + adicionalNoturnoMinuto + valorExtraMinuto;
-
             acumHoras += horaNoPeriodo;
             if (isNoturno) acumNoturnas += horaNoPeriodo;
             acumExtraPuro += valorExtraMinuto;
@@ -195,7 +200,7 @@
         return { totalHoras: acumHoras, horasNoturnas: acumNoturnas, valorExtraPuro: acumExtraPuro, valorAdicionalNoturno: acumNoturnoPuro, valorTotal };
     }
 
-    // ========== ADICIONAR / REMOVER REGISTROS ==========
+    // ========== ADICIONAR / REMOVER REGISTROS DE HORAS EXTRAS ==========
     function adicionarRegistro() {
         let inicioData = document.getElementById("inicioData").value;
         let inicioHora = document.getElementById("inicioHora").value;
@@ -206,10 +211,8 @@
         if (!inicioData || !inicioHora || !fimData || !fimHora) { alert("Preencha tudo"); return; }
         let dtIni = new Date(`${inicioData}T${inicioHora}:00`), dtFim = new Date(`${fimData}T${fimHora}:00`);
         if (dtFim <= dtIni) { alert("Saída posterior ao início"); return; }
-
         let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
             calcularRateioPorDia(inicioData, inicioHora, fimData, fimHora, forcarFeriado);
-
         let novo = {
             id: Date.now(),
             startDate: inicioData, startTime: inicioHora,
@@ -223,7 +226,7 @@
         };
         registros.push(novo);
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-        atualizarBancoHoras();          // recalcula banco de horas
+        atualizarBancoAutomatico();   // recalcula o excedente automático
         renderizarTabela();
         document.getElementById("feriadoManualCheckbox").checked = false;
         alert("Registro adicionado!");
@@ -233,56 +236,40 @@
         if(confirm("Excluir?")) {
             registros.splice(idx,1);
             localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-            atualizarBancoHoras();
+            atualizarBancoAutomatico();
             renderizarTabela();
         }
     }
 
-    // ========== LÓGICA DO BANCO DE HORAS (PERÍODO 16 AO 15) ==========
-    // Retorna a competência no formato "MM/AAAA" baseado no dia 16 (ex: 16/03/2026 -> "03/2026")
+    // ========== BANCO DE HORAS: AUTOMÁTICO (excedente >40h por competência 16→15) ==========
     function getCompetencia(data) {
         let ano = data.getFullYear();
         let mes = data.getMonth();
-        if (data.getDate() >= 16) {
-            // pertence à competência do mês atual (ex: 16/03 a 15/04 -> competência março)
-            return `${(mes+1).toString().padStart(2,'0')}/${ano}`;
-        } else {
-            // se dia <=15, pertence à competência do mês anterior
+        if (data.getDate() >= 16) return `${(mes+1).toString().padStart(2,'0')}/${ano}`;
+        else {
             let mesAnterior = mes === 0 ? 11 : mes-1;
             let anoAnterior = mes === 0 ? ano-1 : ano;
             return `${(mesAnterior+1).toString().padStart(2,'0')}/${anoAnterior}`;
         }
     }
-
-    // Retorna o total de horas de um registro que caem dentro de uma competência específica (rateio minuto a minuto)
     function horasNoPeriodoCompetencia(reg, competencia) {
-        // competencia no formato "MM/AAAA"
         let [mesComp, anoComp] = competencia.split('/');
-        let dataInicioCompetencia = new Date(parseInt(anoComp), parseInt(mesComp)-1, 16); // 16 do mês
-        let dataFimCompetencia = new Date(parseInt(anoComp), parseInt(mesComp), 15); // 15 do próximo mês
-        if (dataFimCompetencia.getMonth() === parseInt(mesComp)-1) dataFimCompetencia = new Date(parseInt(anoComp), parseInt(mesComp), 15);
-        // Garantir que o período é das 00:00 até 23:59 do dia 15
-        dataFimCompetencia.setHours(23,59,59,999);
-        
+        let dataInicioComp = new Date(parseInt(anoComp), parseInt(mesComp)-1, 16);
+        let dataFimComp = new Date(parseInt(anoComp), parseInt(mesComp), 15);
+        dataFimComp.setHours(23,59,59,999);
         let inicioReg = new Date(`${reg.startDate}T${reg.startTime}:00`);
         let fimReg = new Date(`${reg.endDate}T${reg.endTime}:00`);
-        if (fimReg <= dataInicioCompetencia || inicioReg >= dataFimCompetencia) return 0;
-        
-        let inicioEfetivo = inicioReg < dataInicioCompetencia ? dataInicioCompetencia : inicioReg;
-        let fimEfetivo = fimReg > dataFimCompetencia ? dataFimCompetencia : fimReg;
+        if (fimReg <= dataInicioComp || inicioReg >= dataFimComp) return 0;
+        let inicioEfetivo = inicioReg < dataInicioComp ? dataInicioComp : inicioReg;
+        let fimEfetivo = fimReg > dataFimComp ? dataFimComp : fimReg;
         if (fimEfetivo <= inicioEfetivo) return 0;
-        
-        // Calcula horas totais (não apenas noturnas) entre esses dois momentos
-        let diffMs = fimEfetivo - inicioEfetivo;
-        return diffMs / 3600000;
+        return (fimEfetivo - inicioEfetivo) / 3600000;
     }
 
-    function atualizarBancoHoras() {
-        // Agrupar horas por competência
-        let horasPorCompetencia = new Map(); // chave: "MM/AAAA", valor: total horas
+    let excedentesAutomaticos = []; // armazenar para exibir e somar
+    function atualizarBancoAutomatico() {
+        let horasPorCompetencia = new Map();
         for (let reg of registros) {
-            // Determinar qual competência este registro atende (pode estar em mais de uma se cruzar o dia 15)
-            // Solução robusta: percorrer minuto a minuto? Mais simples: pegar a competência da data de início e da data de fim se diferentes.
             let startDateObj = new Date(reg.startDate);
             let endDateObj = new Date(reg.endDate);
             let compIni = getCompetencia(startDateObj);
@@ -291,53 +278,88 @@
                 let horas = horasNoPeriodoCompetencia(reg, compIni);
                 horasPorCompetencia.set(compIni, (horasPorCompetencia.get(compIni) || 0) + horas);
             } else {
-                // O período abrange duas competências. Calcular separadamente.
                 let horasCompIni = horasNoPeriodoCompetencia(reg, compIni);
                 let horasCompFim = horasNoPeriodoCompetencia(reg, compFim);
                 horasPorCompetencia.set(compIni, (horasPorCompetencia.get(compIni) || 0) + horasCompIni);
                 horasPorCompetencia.set(compFim, (horasPorCompetencia.get(compFim) || 0) + horasCompFim);
             }
         }
-        
-        // Agora calcular excedentes (>40) e atualizar bancoHoras
-        let novoBanco = [];
-        for (let [comp, totalHoras] of horasPorCompetencia.entries()) {
-            let excedente = Math.max(0, totalHoras - 40);
-            if (excedente > 0) {
-                novoBanco.push({ competencia: comp, horasExcedente: excedente });
-            }
+        let auto = [];
+        for (let [comp, total] of horasPorCompetencia.entries()) {
+            let excedente = Math.max(0, total - 40);
+            if (excedente > 0) auto.push({ competencia: comp, horasExcedente: excedente });
         }
-        // Ordenar por data (mais antiga primeiro)
-        novoBanco.sort((a,b) => {
+        auto.sort((a,b) => {
             let [mesA, anoA] = a.competencia.split('/');
             let [mesB, anoB] = b.competencia.split('/');
             return new Date(anoA, mesA-1) - new Date(anoB, mesB-1);
         });
-        bancoHoras = novoBanco;
-        localStorage.setItem("bancoHoras", JSON.stringify(bancoHoras));
+        excedentesAutomaticos = auto;
+        localStorage.setItem("excedentesAutomaticos", JSON.stringify(excedentesAutomaticos));
         renderizarBancoHoras();
     }
 
-    function renderizarBancoHoras() {
-        let tbody = document.getElementById("tabelaBancoHoras");
-        tbody.innerHTML = "";
-        let totalExcedente = 0;
-        for (let item of bancoHoras) {
-            totalExcedente += item.horasExcedente;
-            let [mes, ano] = item.competencia.split('/');
-            let periodoStr = `16/${mes}/${ano} a 15/${parseInt(mes)+1}/${ano}`;
-            let row = `<tr>
-                <td>${periodoStr}</td>
-                <td>${formatHorasMinutos(item.horasExcedente + 40)}</td>
-                <td>${formatHorasMinutos(item.horasExcedente)}</td>
-                <td>${formatHorasMinutos(totalExcedente)}</td>
-            </tr>`;
-            tbody.insertAdjacentHTML('beforeend', row);
-        }
-        document.getElementById("bancoTotal").innerHTML = `🏦 Acumulado no banco de horas: ${formatHorasMinutos(totalExcedente)}`;
+    // ========== LANÇAMENTOS MANUAIS ==========
+    function adicionarLancamentoManual() {
+        let horas = parseFloat(document.getElementById("horasManual").value);
+        let data = document.getElementById("dataManual").value;
+        let motivo = document.getElementById("motivoManual").value.trim();
+        if (isNaN(horas) || horas === 0) { alert("Informe um valor de horas (positivo ou negativo)."); return; }
+        if (!data) { alert("Informe a data do lançamento."); return; }
+        if (!motivo) motivo = "Lançamento manual";
+        let novo = {
+            id: Date.now(),
+            data: data,
+            horas: horas,
+            motivo: motivo
+        };
+        lancamentosManuais.push(novo);
+        lancamentosManuais.sort((a,b) => new Date(a.data) - new Date(b.data));
+        localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
+        renderizarBancoHoras();
+        document.getElementById("horasManual").value = "";
+        document.getElementById("dataManual").value = "";
+        document.getElementById("motivoManual").value = "";
+        alert("Lançamento adicionado!");
     }
 
-    // ========== RENDERIZAÇÃO DA TABELA PRINCIPAL ==========
+    function removerLancamentoManual(id) {
+        if (confirm("Remover este lançamento?")) {
+            lancamentosManuais = lancamentosManuais.filter(l => l.id !== id);
+            localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
+            renderizarBancoHoras();
+        }
+    }
+
+    // ========== RENDERIZAÇÃO DO BANCO DE HORAS (automático + manual) ==========
+    function renderizarBancoHoras() {
+        // Tabela de lançamentos manuais
+        let tbodyManual = document.getElementById("tabelaLancamentosManuais");
+        tbodyManual.innerHTML = "";
+        let totalManual = 0;
+        for (let l of lancamentosManuais) {
+            totalManual += l.horas;
+            let row = `<tr>
+                <td>${formatarDataBR(l.data)}</td>
+                <td>${formatHorasMinutos(l.horas)}</td>
+                <td>${l.motivo}</td>
+                <td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td>
+            </tr>`;
+            tbodyManual.insertAdjacentHTML('beforeend', row);
+        }
+        // Saldo automático total
+        let totalAuto = 0;
+        for (let auto of excedentesAutomaticos) totalAuto += auto.horasExcedente;
+        let saldoTotal = totalAuto + totalManual;
+        document.getElementById("bancoTotal").innerHTML = `
+            🏦 <strong>Saldo do banco de horas</strong><br>
+            ⚙️ Automático (excedentes >40h): ${formatHorasMinutos(totalAuto)}<br>
+            ✍️ Lançamentos manuais: ${formatHorasMinutos(totalManual)}<br>
+            🧾 <strong>SALDO TOTAL: ${formatHorasMinutos(saldoTotal)}</strong>
+        `;
+    }
+
+    // ========== RENDERIZAÇÃO TABELA PRINCIPAL ==========
     function aplicarFiltros() {
         let mes = document.getElementById("filtroMes").value;
         let desc = document.getElementById("filtroDescricao").value.toLowerCase();
@@ -360,7 +382,7 @@
         filtrados.forEach(reg => {
             totalHoras += reg.horas; totalNoturnas += reg.horasNoturnas; totalExtra += reg.valorExtra; totalNotAd += reg.valorNoturnoAdicional; totalGeral += reg.valor;
             let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime} → ${formatarDataBR(reg.endDate)} ${reg.endTime}`;
-            let badgeAdicional = reg.feriadoManual ? '<span class="badge badge-manual">100% (marcado)</span>' : '<span class="badge">auto</span>';
+            let badgeAdicional = reg.feriadoManual ? '<span class="badge">100% (marcado)</span>' : '<span class="badge">auto</span>';
             let idx = registros.findIndex(r => r.id === reg.id);
             let row = `<tr>
                 <td style="text-align:left;">${periodo}</td>
@@ -372,7 +394,7 @@
                 <td><strong>R$ ${reg.valor.toFixed(2)}</strong></td>
                 <td>${reg.descricao.substring(0,30)}</td>
                 <td><button class="delete-btn" onclick="removerRegistro(${idx})">Excluir</button></td>
-            </tr>`;
+            </table>`;
             tbody.insertAdjacentHTML('beforeend', row);
         });
         let filtroStatus = document.getElementById("filtroStatus");
@@ -402,7 +424,6 @@
         if(isNaN(val)) val=0;
         salarioMensal = val;
         localStorage.setItem("salarioPlus", salarioMensal);
-        // Recalcular todos os registros
         for(let reg of registros) {
             let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
                 calcularRateioPorDia(reg.startDate, reg.startTime, reg.endDate, reg.endTime, reg.feriadoManual || false);
@@ -410,13 +431,13 @@
             reg.valorExtra = valorExtraPuro; reg.valorNoturnoAdicional = valorAdicionalNoturno; reg.valor = valorTotal;
         }
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-        atualizarBancoHoras();
+        atualizarBancoAutomatico();
         renderizarTabela();
         document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
         alert("Salário atualizado!");
     }
 
-    // ========== GERAR PDF PRINCIPAL ==========
+    // ========== PDF PRINCIPAL ==========
     async function gerarPDF() {
         if (salarioMensal <= 0) { alert("Defina o salário."); return; }
         let dados = aplicarFiltros();
@@ -431,7 +452,7 @@
                 let y=25, mx=10;
                 doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F');
                 doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"});
-                doc.setFontSize(8); doc.text("Dias úteis 50% | Domingos/feriados 100% | Checkbox força 100%", pw/2, 24, {align:"center"});
+                doc.setFontSize(8); doc.text("50% dias úteis | 100% domingos/feriados | Checkbox força 100%", pw/2, 24, {align:"center"});
                 y=38;
                 doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9);
                 doc.text("INFORMAÇÕES", mx, y); y+=5;
@@ -481,9 +502,8 @@
         }, 100);
     }
 
-    // ========== GERAR PDF DO BANCO DE HORAS ==========
+    // ========== PDF DO BANCO DE HORAS (automático + manual) ==========
     async function gerarPDFBancoHoras() {
-        if (bancoHoras.length === 0) { alert("Nenhum excedente registrado."); return; }
         const btn = event.target;
         btn.innerHTML = '<span class="loading"></span>';
         btn.disabled = true;
@@ -494,28 +514,44 @@
                 let y = 25, mx = 10;
                 doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F');
                 doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DO BANCO DE HORAS", pw/2, 15, {align:"center"});
-                doc.setFontSize(8); doc.text("Excedentes mensais (>40h) no período 16→15", pw/2, 24, {align:"center"});
+                doc.setFontSize(8); doc.text("Excedentes automáticos (>40h por período 16→15) + Lançamentos manuais", pw/2, 24, {align:"center"});
                 y=40;
                 doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10);
-                doc.text("Competência (16 a 15)", mx, y); doc.text("Horas no período", mx+60, y); doc.text("Excedente", mx+110, y); doc.text("Acumulado", mx+150, y);
-                y+=6;
+                doc.text("1. EXCEDENTES AUTOMÁTICOS", mx, y); y+=6;
                 doc.setFont("helvetica","normal"); doc.setFontSize(9);
-                let acumulado = 0;
-                for (let item of bancoHoras) {
-                    let [mes, ano] = item.competencia.split('/');
+                doc.text("Competência", mx, y); doc.text("Horas no período", mx+60, y); doc.text("Excedente (>40h)", mx+120, y); y+=5;
+                let totalAuto = 0;
+                for (let auto of excedentesAutomaticos) {
+                    let [mes, ano] = auto.competencia.split('/');
                     let periodoStr = `16/${mes}/${ano} a 15/${parseInt(mes)+1}/${ano}`;
-                    let totalPeriodo = item.horasExcedente + 40;
-                    acumulado += item.horasExcedente;
+                    let totalPeriodo = auto.horasExcedente + 40;
+                    totalAuto += auto.horasExcedente;
                     doc.text(periodoStr, mx, y);
                     doc.text(formatHorasMinutos(totalPeriodo), mx+60, y);
-                    doc.text(formatHorasMinutos(item.horasExcedente), mx+110, y);
-                    doc.text(formatHorasMinutos(acumulado), mx+150, y);
-                    y+=6;
+                    doc.text(formatHorasMinutos(auto.horasExcedente), mx+120, y);
+                    y+=5;
                     if (y > 270) { doc.addPage(); y=25; }
                 }
-                y+=10;
-                doc.setFont("helvetica","bold");
-                doc.text(`Total acumulado no banco de horas: ${formatHorasMinutos(acumulado)}`, mx, y);
+                y+=8;
+                doc.setFont("helvetica","bold"); doc.text(`Total automático acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y); y+=12;
+                doc.setFont("helvetica","bold"); doc.text("2. LANÇAMENTOS MANUAIS", mx, y); y+=6;
+                doc.setFont("helvetica","normal");
+                doc.text("Data", mx, y); doc.text("Horas", mx+50, y); doc.text("Motivo", mx+90, y); y+=5;
+                let totalManual = 0;
+                for (let l of lancamentosManuais) {
+                    totalManual += l.horas;
+                    doc.text(formatarDataBR(l.data), mx, y);
+                    doc.text(formatHorasMinutos(l.horas), mx+50, y);
+                    doc.text(l.motivo.substring(0,30), mx+90, y);
+                    y+=5;
+                    if (y > 270) { doc.addPage(); y=25; doc.text("Data", mx, y); doc.text("Horas", mx+50, y); doc.text("Motivo", mx+90, y); y+=5; }
+                }
+                y+=8;
+                doc.setFont("helvetica","bold"); doc.text(`Total manual acumulado: ${formatHorasMinutos(totalManual)}`, mx, y); y+=6;
+                let saldoFinal = totalAuto + totalManual;
+                doc.setFontSize(12); doc.setTextColor(0,100,0); doc.text(`SALDO TOTAL DO BANCO DE HORAS: ${formatHorasMinutos(saldoFinal)}`, mx, y);
+                const pag = doc.internal.getNumberOfPages();
+                for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.setTextColor(100,100,100); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); }
                 pdfBlob = doc.output('blob');
                 document.getElementById("nomeArquivoPDF").value = `banco_horas_${new Date().toISOString().slice(0,10)}`;
                 document.getElementById("pdfModal").style.display = "block";
@@ -539,13 +575,18 @@
         document.getElementById("inicioHora").value = "19:15";
         document.getElementById("fimData").value = amanha;
         document.getElementById("fimHora").value = "03:10";
-        salvarSalario(); // apenas para exibir na tela
+        document.getElementById("dataManual").value = hoje;
+        // Carregar dados salvos
+        let savedAuto = localStorage.getItem("excedentesAutomaticos");
+        if (savedAuto) excedentesAutomaticos = JSON.parse(savedAuto);
+        else excedentesAutomaticos = [];
+        salvarSalario(); // recarrega salário e recalcula automático se necessário
         renderizarTabela();
-        atualizarBancoHoras(); // carrega banco existente
+        renderizarBancoHoras();
     };
     window.adicionarRegistro = adicionarRegistro; window.removerRegistro = removerRegistro; window.salvarSalario = salvarSalario;
     window.limparFiltros = limparFiltros; window.gerarPDF = gerarPDF; window.gerarPDFBancoHoras = gerarPDFBancoHoras;
-    window.atualizarBancoHoras = atualizarBancoHoras;
+    window.adicionarLancamentoManual = adicionarLancamentoManual; window.removerLancamentoManual = removerLancamentoManual;
     window.fecharModal = fecharModal; window.baixarPDF = baixarPDF; window.compartilharPDF = compartilharPDF;
     window.compartilharRelatorio = compartilharRelatorio; window.visualizarPDF = visualizarPDF;
 </script>
