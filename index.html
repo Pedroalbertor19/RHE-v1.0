@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras + Banco de Horas (Salário Persistente)</title>
+    <title>Horas Extras + Banco de Horas (com Backup Manual)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -11,7 +11,7 @@
         @keyframes bgWave { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
         .card { background: rgba(12,25,35,0.85); backdrop-filter: blur(2px); border-radius: 28px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(72,187,255,0.25); }
-        h1 { font-size: 1.7rem; display: flex; gap: 12px; align-items: center; }
+        h1 { font-size: 1.7rem; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         h1 small { font-size: 0.7rem; background: #0a2e3f; padding: 5px 12px; border-radius: 60px; }
         h3 { border-left: 4px solid #2bc0ff; padding-left: 12px; margin-top: 0; }
         .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1rem; }
@@ -21,6 +21,7 @@
         .btn-outline { background: rgba(255,255,240,0.1); border: 1px solid #7bceff; color: #d9f2ff; }
         .btn-pdf { background: linear-gradient(135deg,#d9534f,#b52b27); }
         .btn-share { background: linear-gradient(135deg,#25D366,#128C7E); }
+        .btn-backup { background: linear-gradient(135deg,#6c757d,#343a40); }
         .checkbox-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
         .checkbox-row label { margin: 0; }
         .checkbox-row input { width: auto; margin: 0; transform: scale(1.2); }
@@ -41,13 +42,14 @@
         .close { float: right; font-size: 28px; cursor: pointer; color: #aaa; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .alert { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: black; color: white; padding: 12px 24px; border-radius: 50px; animation: fadeOut 3s forwards; }
+        .alert { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: black; color: white; padding: 12px 24px; border-radius: 50px; animation: fadeOut 3s forwards; z-index: 1001; }
         @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+        .file-input { background: #ecf9ff; color: #042433; cursor: pointer; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Horas Extras + Banco de Horas <small>Salário Persistente</small></h1>
+    <h1>⚖️ Horas Extras + Banco de Horas <small>com Backup Manual</small></h1>
 
     <div class="card">
         <h3>💰 Salário base</h3>
@@ -56,6 +58,16 @@
             <div><button onclick="salvarSalario()">Salvar salário</button></div>
         </div>
         <div id="salarioStatus" class="info-note"></div>
+    </div>
+
+    <div class="card">
+        <h3>💾 Backup manual (para WebView sem localStorage persistente)</h3>
+        <div class="flex-buttons">
+            <button onclick="exportarDados()" class="btn-backup">📁 Exportar dados (JSON)</button>
+            <label for="importFileInput" class="btn-backup" style="background: #28a745; padding: 12px; border-radius: 18px; text-align: center; cursor: pointer;">📂 Importar dados (JSON)</label>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importarDados(this)">
+        </div>
+        <div class="info-note">⚠️ Se o banco de horas não estiver sincronizando ao fechar o app, use a exportação antes de sair e importe na próxima abertura. Os dados serão restaurados completamente.</div>
     </div>
 
     <div class="card">
@@ -132,10 +144,10 @@
 
 <script>
     const { jsPDF } = window.jspdf;
-    let registros = JSON.parse(localStorage.getItem("horasExtrasPlus")) || [];
-    let salarioMensal = parseFloat(localStorage.getItem("salarioPlus")) || 0;
-    let lancamentosManuais = JSON.parse(localStorage.getItem("lancamentosManuais")) || [];
-    let excedentesAutomaticos = JSON.parse(localStorage.getItem("excedentesAutomaticos")) || [];
+    let registros = [];
+    let salarioMensal = 0;
+    let lancamentosManuais = [];
+    let excedentesAutomaticos = [];
     let pdfBlob = null;
 
     // ========== FERIADOS NACIONAIS ==========
@@ -154,8 +166,15 @@
         return `${h < 0 ? '-' : ''}${horas}h${mins.toString().padStart(2,'0')}min`;
     }
     function formatarDataBR(d) { if(!d) return ""; let [a,m,dia] = d.split("-"); return `${dia}/${m}/${a}`; }
+    function mostrarAlerta(msg) {
+        let alerta = document.createElement('div');
+        alerta.className = 'alert';
+        alerta.textContent = msg;
+        document.body.appendChild(alerta);
+        setTimeout(() => alerta.remove(), 3000);
+    }
 
-    // ========== CÁLCULO DE HORAS NOTURNAS ==========
+    // ========== CÁLCULOS ==========
     function calcularHorasNoturnas(inicio, fim) {
         let minutos = 0;
         let current = new Date(inicio);
@@ -166,7 +185,6 @@
         return minutos / 60;
     }
 
-    // ========== CÁLCULO DO REGISTRO ==========
     function calcularRateioPorDia(startDate, startTime, endDate, endTime, forcarFeriado = false) {
         let inicio = new Date(`${startDate}T${startTime}:00`);
         let fim = new Date(`${endDate}T${endTime}:00`);
@@ -199,47 +217,6 @@
         }
         let valorTotal = acumExtraPuro + acumNoturnoPuro + (acumHoras * valorHoraBase);
         return { totalHoras: acumHoras, horasNoturnas: acumNoturnas, valorExtraPuro: acumExtraPuro, valorAdicionalNoturno: acumNoturnoPuro, valorTotal };
-    }
-
-    // ========== ADICIONAR / REMOVER REGISTROS ==========
-    function adicionarRegistro() {
-        let inicioData = document.getElementById("inicioData").value;
-        let inicioHora = document.getElementById("inicioHora").value;
-        let fimData = document.getElementById("fimData").value;
-        let fimHora = document.getElementById("fimHora").value;
-        let forcarFeriado = document.getElementById("feriadoManualCheckbox").checked;
-        let descricao = document.getElementById("descricaoExtra").value.trim();
-        if (!inicioData || !inicioHora || !fimData || !fimHora) { alert("Preencha tudo"); return; }
-        let dtIni = new Date(`${inicioData}T${inicioHora}:00`), dtFim = new Date(`${fimData}T${fimHora}:00`);
-        if (dtFim <= dtIni) { alert("Saída posterior ao início"); return; }
-        let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
-            calcularRateioPorDia(inicioData, inicioHora, fimData, fimHora, forcarFeriado);
-        let novo = {
-            id: Date.now(),
-            startDate: inicioData, startTime: inicioHora,
-            endDate: fimData, endTime: fimHora,
-            horas: totalHoras, horasNoturnas: horasNoturnas,
-            feriadoManual: forcarFeriado,
-            valorExtra: valorExtraPuro,
-            valorNoturnoAdicional: valorAdicionalNoturno,
-            valor: valorTotal,
-            descricao: descricao || "sem descrição"
-        };
-        registros.push(novo);
-        localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-        atualizarBancoAutomatico();
-        renderizarTabela();
-        document.getElementById("feriadoManualCheckbox").checked = false;
-        alert("Registro adicionado!");
-    }
-
-    function removerRegistro(idx) {
-        if(confirm("Excluir?")) {
-            registros.splice(idx,1);
-            localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-            atualizarBancoAutomatico();
-            renderizarTabela();
-        }
     }
 
     // ========== BANCO DE HORAS AUTOMÁTICO ==========
@@ -299,33 +276,6 @@
         renderizarBancoHoras();
     }
 
-    // ========== LANÇAMENTOS MANUAIS ==========
-    function adicionarLancamentoManual() {
-        let horas = parseFloat(document.getElementById("horasManual").value);
-        let data = document.getElementById("dataManual").value;
-        let motivo = document.getElementById("motivoManual").value.trim();
-        if (isNaN(horas) || horas === 0) { alert("Informe um valor de horas (positivo ou negativo)."); return; }
-        if (!data) { alert("Informe a data do lançamento."); return; }
-        if (!motivo) motivo = "Lançamento manual";
-        let novo = { id: Date.now(), data: data, horas: horas, motivo: motivo };
-        lancamentosManuais.push(novo);
-        lancamentosManuais.sort((a,b) => new Date(a.data) - new Date(b.data));
-        localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
-        renderizarBancoHoras();
-        document.getElementById("horasManual").value = "";
-        document.getElementById("dataManual").value = new Date().toISOString().slice(0,10);
-        document.getElementById("motivoManual").value = "";
-        alert("Lançamento adicionado!");
-    }
-
-    function removerLancamentoManual(id) {
-        if (confirm("Remover este lançamento?")) {
-            lancamentosManuais = lancamentosManuais.filter(l => l.id !== id);
-            localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
-            renderizarBancoHoras();
-        }
-    }
-
     function renderizarBancoHoras() {
         let tbodyManual = document.getElementById("tabelaLancamentosManuais");
         tbodyManual.innerHTML = "";
@@ -349,6 +299,74 @@
             ✍️ Lançamentos manuais: ${formatHorasMinutos(totalManual)}<br>
             🧾 <strong>SALDO TOTAL: ${formatHorasMinutos(saldoTotal)}</strong>
         `;
+    }
+
+    // ========== LANÇAMENTOS MANUAIS ==========
+    function adicionarLancamentoManual() {
+        let horas = parseFloat(document.getElementById("horasManual").value);
+        let data = document.getElementById("dataManual").value;
+        let motivo = document.getElementById("motivoManual").value.trim();
+        if (isNaN(horas) || horas === 0) { alert("Informe um valor de horas (positivo ou negativo)."); return; }
+        if (!data) { alert("Informe a data do lançamento."); return; }
+        if (!motivo) motivo = "Lançamento manual";
+        let novo = { id: Date.now(), data: data, horas: horas, motivo: motivo };
+        lancamentosManuais.push(novo);
+        lancamentosManuais.sort((a,b) => new Date(a.data) - new Date(b.data));
+        localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
+        renderizarBancoHoras();
+        document.getElementById("horasManual").value = "";
+        document.getElementById("dataManual").value = new Date().toISOString().slice(0,10);
+        document.getElementById("motivoManual").value = "";
+        mostrarAlerta("Lançamento manual adicionado!");
+    }
+
+    function removerLancamentoManual(id) {
+        if (confirm("Remover este lançamento?")) {
+            lancamentosManuais = lancamentosManuais.filter(l => l.id !== id);
+            localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
+            renderizarBancoHoras();
+        }
+    }
+
+    // ========== REGISTROS DE HORAS EXTRAS ==========
+    function adicionarRegistro() {
+        let inicioData = document.getElementById("inicioData").value;
+        let inicioHora = document.getElementById("inicioHora").value;
+        let fimData = document.getElementById("fimData").value;
+        let fimHora = document.getElementById("fimHora").value;
+        let forcarFeriado = document.getElementById("feriadoManualCheckbox").checked;
+        let descricao = document.getElementById("descricaoExtra").value.trim();
+        if (!inicioData || !inicioHora || !fimData || !fimHora) { alert("Preencha tudo"); return; }
+        let dtIni = new Date(`${inicioData}T${inicioHora}:00`), dtFim = new Date(`${fimData}T${fimHora}:00`);
+        if (dtFim <= dtIni) { alert("Saída posterior ao início"); return; }
+        let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
+            calcularRateioPorDia(inicioData, inicioHora, fimData, fimHora, forcarFeriado);
+        let novo = {
+            id: Date.now(),
+            startDate: inicioData, startTime: inicioHora,
+            endDate: fimData, endTime: fimHora,
+            horas: totalHoras, horasNoturnas: horasNoturnas,
+            feriadoManual: forcarFeriado,
+            valorExtra: valorExtraPuro,
+            valorNoturnoAdicional: valorAdicionalNoturno,
+            valor: valorTotal,
+            descricao: descricao || "sem descrição"
+        };
+        registros.push(novo);
+        localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+        atualizarBancoAutomatico();
+        renderizarTabela();
+        document.getElementById("feriadoManualCheckbox").checked = false;
+        mostrarAlerta("Registro adicionado!");
+    }
+
+    function removerRegistro(idx) {
+        if(confirm("Excluir?")) {
+            registros.splice(idx,1);
+            localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+            atualizarBancoAutomatico();
+            renderizarTabela();
+        }
     }
 
     // ========== RENDERIZAÇÃO TABELA PRINCIPAL ==========
@@ -411,13 +429,12 @@
         renderizarTabela();
     }
 
-    // ========== FUNÇÃO CORRIGIDA PARA SALVAR SALÁRIO ==========
+    // ========== SALÁRIO ==========
     function salvarSalario() {
         let val = parseFloat(document.getElementById("salario").value);
         if (isNaN(val)) val = 0;
         salarioMensal = val;
         localStorage.setItem("salarioPlus", salarioMensal);
-        // Recalcular todos os registros com o novo salário
         for (let reg of registros) {
             let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
                 calcularRateioPorDia(reg.startDate, reg.startTime, reg.endDate, reg.endTime, reg.feriadoManual || false);
@@ -434,47 +451,56 @@
         mostrarAlerta("Salário salvo e valores recalculados!");
     }
 
-    // ========== INICIALIZAÇÃO CORRIGIDA ==========
-    function inicializar() {
-        // Recupera salário do localStorage e exibe no campo
-        let salvo = localStorage.getItem("salarioPlus");
-        if (salvo !== null && !isNaN(parseFloat(salvo))) {
-            salarioMensal = parseFloat(salvo);
-            document.getElementById("salario").value = salarioMensal;
-        } else {
-            salarioMensal = 0;
-            document.getElementById("salario").value = "";
-        }
-        // Recupera registros e excedentes
-        registros = JSON.parse(localStorage.getItem("horasExtrasPlus")) || [];
-        lancamentosManuais = JSON.parse(localStorage.getItem("lancamentosManuais")) || [];
-        let savedAuto = localStorage.getItem("excedentesAutomaticos");
-        if (savedAuto) excedentesAutomaticos = JSON.parse(savedAuto);
-        else excedentesAutomaticos = [];
-        // Atualiza display do salário
-        document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
-        // Recalcula valores com o salário atual (caso tenha mudado ou registros antigos)
-        for (let reg of registros) {
-            let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
-                calcularRateioPorDia(reg.startDate, reg.startTime, reg.endDate, reg.endTime, reg.feriadoManual || false);
-            reg.horas = totalHoras;
-            reg.horasNoturnas = horasNoturnas;
-            reg.valorExtra = valorExtraPuro;
-            reg.valorNoturnoAdicional = valorAdicionalNoturno;
-            reg.valor = valorTotal;
-        }
-        localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
-        atualizarBancoAutomatico();
-        renderizarTabela();
-        renderizarBancoHoras();
-        // Definir valores padrão nos campos de data
-        let hoje = new Date().toISOString().slice(0,10);
-        let amanha = new Date(Date.now()+86400000).toISOString().slice(0,10);
-        document.getElementById("inicioData").value = hoje;
-        document.getElementById("inicioHora").value = "19:15";
-        document.getElementById("fimData").value = amanha;
-        document.getElementById("fimHora").value = "03:10";
-        document.getElementById("dataManual").value = hoje;
+    // ========== BACKUP MANUAL (EXPORTAR / IMPORTAR) ==========
+    function exportarDados() {
+        const dados = {
+            versao: "1.0",
+            salarioMensal: salarioMensal,
+            registros: registros,
+            lancamentosManuais: lancamentosManuais,
+            excedentesAutomaticos: excedentesAutomaticos,
+            dataExportacao: new Date().toISOString()
+        };
+        const json = JSON.stringify(dados, null, 2);
+        const blob = new Blob([json], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `backup_horas_${new Date().toISOString().slice(0,19).replace(/:/g, "-")}.json`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        mostrarAlerta("Backup exportado com sucesso!");
+    }
+
+    function importarDados(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const dados = JSON.parse(e.target.result);
+                if (dados.salarioMensal !== undefined) salarioMensal = dados.salarioMensal;
+                if (dados.registros) registros = dados.registros;
+                if (dados.lancamentosManuais) lancamentosManuais = dados.lancamentosManuais;
+                if (dados.excedentesAutomaticos) excedentesAutomaticos = dados.excedentesAutomaticos;
+                // Salvar no localStorage
+                localStorage.setItem("salarioPlus", salarioMensal);
+                localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+                localStorage.setItem("lancamentosManuais", JSON.stringify(lancamentosManuais));
+                localStorage.setItem("excedentesAutomaticos", JSON.stringify(excedentesAutomaticos));
+                // Atualizar interface
+                document.getElementById("salario").value = salarioMensal;
+                document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
+                renderizarTabela();
+                renderizarBancoHoras();
+                mostrarAlerta("Dados importados com sucesso! O sistema foi recarregado.");
+            } catch (erro) {
+                alert("Erro ao ler o arquivo. Verifique se é um backup válido.");
+            }
+            input.value = ""; // limpar para permitir re-importar o mesmo arquivo
+        };
+        reader.readAsText(file);
     }
 
     // ========== PDFs ==========
@@ -599,24 +625,62 @@
         }, 100);
     }
 
-    function mostrarAlerta(msg) {
-        let alerta = document.createElement('div');
-        alerta.className = 'alert';
-        alerta.textContent = msg;
-        document.body.appendChild(alerta);
-        setTimeout(() => alerta.remove(), 3000);
-    }
-
+    // ========== COMPARTILHAMENTO E MODAL ==========
     function fecharModal() { document.getElementById("pdfModal").style.display = "none"; }
     function baixarPDF() { if(pdfBlob){ let nome = document.getElementById("nomeArquivoPDF").value.trim() || "relatorio.pdf"; if(!nome.endsWith(".pdf")) nome+=".pdf"; let url = URL.createObjectURL(pdfBlob); let a = document.createElement('a'); a.href=url; a.download=nome; a.click(); setTimeout(()=>URL.revokeObjectURL(url),100); fecharModal(); } }
     function compartilharPDF() { if(pdfBlob){ let nome = document.getElementById("nomeArquivoPDF").value.trim()+".pdf"; let file = new File([pdfBlob], nome, {type:"application/pdf"}); if(navigator.share) navigator.share({files:[file]}).catch(()=>baixarPDF()); else baixarPDF(); } }
     function visualizarPDF() { if(pdfBlob) window.open(URL.createObjectURL(pdfBlob), '_blank'); fecharModal(); }
     function compartilharRelatorio() { if(pdfBlob) compartilharPDF(); else gerarPDF(); }
 
+    // ========== INICIALIZAÇÃO ==========
+    function inicializar() {
+        // Carregar dados do localStorage
+        let salvoSalario = localStorage.getItem("salarioPlus");
+        if (salvoSalario !== null && !isNaN(parseFloat(salvoSalario))) salarioMensal = parseFloat(salvoSalario);
+        let salvosRegistros = localStorage.getItem("horasExtrasPlus");
+        if (salvosRegistros) registros = JSON.parse(salvosRegistros);
+        let salvosManuais = localStorage.getItem("lancamentosManuais");
+        if (salvosManuais) lancamentosManuais = JSON.parse(salvosManuais);
+        let salvosAuto = localStorage.getItem("excedentesAutomaticos");
+        if (salvosAuto) excedentesAutomaticos = JSON.parse(salvosAuto);
+        else excedentesAutomaticos = [];
+        // Atualizar campos
+        document.getElementById("salario").value = salarioMensal;
+        document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
+        // Recalcular registros com salário atual
+        for (let reg of registros) {
+            let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = 
+                calcularRateioPorDia(reg.startDate, reg.startTime, reg.endDate, reg.endTime, reg.feriadoManual || false);
+            reg.horas = totalHoras;
+            reg.horasNoturnas = horasNoturnas;
+            reg.valorExtra = valorExtraPuro;
+            reg.valorNoturnoAdicional = valorAdicionalNoturno;
+            reg.valor = valorTotal;
+        }
+        // Salvar de volta (caso tenha recalculado algo)
+        localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
+        atualizarBancoAutomatico();
+        renderizarTabela();
+        renderizarBancoHoras();
+        // Definir valores padrão nos campos de data
+        let hoje = new Date().toISOString().slice(0,10);
+        let amanha = new Date(Date.now()+86400000).toISOString().slice(0,10);
+        document.getElementById("inicioData").value = hoje;
+        document.getElementById("inicioHora").value = "19:15";
+        document.getElementById("fimData").value = amanha;
+        document.getElementById("fimHora").value = "03:10";
+        document.getElementById("dataManual").value = hoje;
+        // Aviso sobre localStorage se estiver vazio (primeira vez)
+        if (!salvosRegistros && !salvosManuais && salarioMensal === 0) {
+            mostrarAlerta("Bem-vindo! Se o banco de horas não sincronizar ao fechar o app, use os botões Exportar/Importar para manter seus dados.");
+        }
+    }
+
     window.onload = inicializar;
     window.adicionarRegistro = adicionarRegistro; window.removerRegistro = removerRegistro; window.salvarSalario = salvarSalario;
     window.limparFiltros = limparFiltros; window.gerarPDF = gerarPDF; window.gerarPDFBancoHoras = gerarPDFBancoHoras;
     window.adicionarLancamentoManual = adicionarLancamentoManual; window.removerLancamentoManual = removerLancamentoManual;
+    window.exportarDados = exportarDados; window.importarDados = importarDados;
     window.fecharModal = fecharModal; window.baixarPDF = baixarPDF; window.compartilharPDF = compartilharPDF;
     window.compartilharRelatorio = compartilharRelatorio; window.visualizarPDF = visualizarPDF;
 </script>
