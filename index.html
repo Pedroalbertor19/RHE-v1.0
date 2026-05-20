@@ -28,15 +28,15 @@
         table { width: 100%; min-width: 1000px; table-layout: fixed; border-collapse: collapse; font-size: 0.8rem; }
         th, td { padding: 10px 6px; border-bottom: 1px solid rgba(160,210,255,0.3); text-align: center; vertical-align: middle; word-break: break-word; }
         th { background: #0a374b80; }
-        /* Larguras fixas para evitar sobreposição na tabela principal */
-        .tabela-extras td:first-child, .tabela-extras th:first-child { width: 22%; }
+        /* Ajuste de larguras para evitar sobreposição */
+        .tabela-extras td:first-child, .tabela-extras th:first-child { width: 28%; white-space: normal; word-break: break-word; }
         .tabela-extras td:nth-child(2), .tabela-extras th:nth-child(2) { width: 8%; }
         .tabela-extras td:nth-child(3), .tabela-extras th:nth-child(3) { width: 8%; }
         .tabela-extras td:nth-child(4), .tabela-extras th:nth-child(4) { width: 7%; }
         .tabela-extras td:nth-child(5), .tabela-extras th:nth-child(5) { width: 10%; }
         .tabela-extras td:nth-child(6), .tabela-extras th:nth-child(6) { width: 10%; }
         .tabela-extras td:nth-child(7), .tabela-extras th:nth-child(7) { width: 10%; }
-        .tabela-extras td:nth-child(8), .tabela-extras th:nth-child(8) { width: 8%; }
+        .tabela-extras td:nth-child(8), .tabela-extras th:nth-child(8) { width: 7%; }
         .tabela-extras td:nth-child(9), .tabela-extras th:nth-child(9) { width: 12%; }
         .tabela-extras td:nth-child(10), .tabela-extras th:nth-child(10) { width: 7%; }
 
@@ -57,6 +57,7 @@
         @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
         @media (max-width: 700px) {
             .tabela-extras td, .tabela-extras th { font-size: 0.7rem; padding: 5px 2px; }
+            .tabela-extras td:first-child { font-size: 0.65rem; }
         }
     </style>
 </head>
@@ -222,6 +223,10 @@
         if (fim <= inicio) return 0;
         return (fim - inicio) / 3600000;
     }
+    // Formata período com " à " em vez de "→"
+    function formatarPeriodo(dataIni, horaIni, dataFim, horaFim) {
+        return `${formatarDataBR(dataIni)} ${horaIni} à ${formatarDataBR(dataFim)} ${horaFim}`;
+    }
 
     function calcularHorasNoturnas(inicio, fim) {
         let minutos = 0;
@@ -313,7 +318,7 @@
         tbody.innerHTML = "";
         for (let s of sobreavisos) {
             let saldo = s.horasTotais - (s.horasUsadas || 0);
-            let periodo = `${formatarDataBR(s.dataInicio)} ${s.horaInicio} → ${formatarDataBR(s.dataFim)} ${s.horaFim}`;
+            let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim);
             let row = `<tr><td style="text-align:left;">${periodo}</td><td>${formatHorasMinutos(s.horasTotais)}</td><td>${formatHorasMinutos(s.horasUsadas || 0)}</td><td><strong>${formatHorasMinutos(saldo)}</strong></td><td>${s.motivo}</td><td><button class="delete-btn" onclick="removerSobreaviso(${s.id})">Excluir</button></td></tr>`;
             tbody.insertAdjacentHTML('beforeend', row);
         }
@@ -494,7 +499,7 @@
         let totalHoras=0, totalNoturnas=0, totalExtra=0, totalNotAd=0, totalGeral=0;
         filtrados.forEach(reg => {
             totalHoras += reg.horas; totalNoturnas += reg.horasNoturnas; totalExtra += reg.valorExtra; totalNotAd += reg.valorNoturnoAdicional; totalGeral += reg.valor;
-            let periodo = `${formatarDataBR(reg.startDate)} ${reg.startTime} → ${formatarDataBR(reg.endDate)} ${reg.endTime}`;
+            let periodo = formatarPeriodo(reg.startDate, reg.startTime, reg.endDate, reg.endTime);
             let badgeAdicional = reg.feriadoManual ? '<span class="badge">100% (marcado)</span>' : '<span class="badge">auto</span>';
             let badgeSobre = reg.compensadoSobreaviso ? '<span class="badge badge-sobreaviso">Sim</span>' : '<span class="badge">Não</span>';
             let idx = registros.findIndex(r => r.id === reg.id);
@@ -550,7 +555,7 @@
         alert("Salário atualizado!");
     }
 
-    // ========== PDF PRINCIPAL (LANDSCAPE, COLUNAS AJUSTADAS) ==========
+    // ========== PDF PRINCIPAL (LANDSCAPE) ==========
     async function gerarPDF() {
         if (salarioMensal <= 0) { alert("Defina o salário."); return; }
         let dados = aplicarFiltros();
@@ -563,7 +568,6 @@
                 const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
                 let y = 25, mx = 10;
-                // Cabeçalho
                 doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F');
                 doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"});
                 doc.setFontSize(8); doc.text("50% dias úteis | 100% domingos/feriados | Sobreaviso abate horas", pw/2, 24, {align:"center"});
@@ -574,12 +578,12 @@
                 doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4;
                 doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4;
                 doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8;
-                // Colunas: período (55mm), total(12), noturnas(12), vExtra(20), vNot(20), vTotal(20), sobreaviso(10), desc(25)
-                const col = { per: mx, total: mx+55, not: mx+67, vExtra: mx+79, vNot: mx+99, vTotal: mx+119, sobre: mx+139, desc: mx+149 };
+                // Colunas ajustadas: período (65mm), total(12), not(12), vExtra(20), vNot(20), vTotal(20), sobre(10), desc(20)
+                const col = { per: mx, total: mx+65, not: mx+77, vExtra: mx+89, vNot: mx+109, vTotal: mx+129, sobre: mx+149, desc: mx+159 };
                 function header() {
                     doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F');
                     doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold");
-                    doc.text("Período (início → fim)", col.per+1, y+5);
+                    doc.text("Período (início à fim)", col.per+1, y+5);
                     doc.text("Total", col.total+1, y+5);
                     doc.text("Not.", col.not+1, y+5);
                     doc.text("V.Extra", col.vExtra+1, y+5);
@@ -596,7 +600,7 @@
                 for(let r of dados) {
                     totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor;
                     if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); }
-                    let periodo = `${formatarDataBR(r.startDate)} ${r.startTime}→${formatarDataBR(r.endDate)} ${r.endTime}`;
+                    let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime);
                     doc.text(periodo, col.per+1, y+4);
                     doc.text(formatHorasMinutos(r.horas), col.total+1, y+4);
                     doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4);
@@ -627,7 +631,7 @@
         }, 100);
     }
 
-    // PDF SOBREAVISO (PAISAGEM PARA MELHOR ADEQUAÇÃO)
+    // PDF SOBREAVISO (PAISAGEM)
     async function gerarPDFSobreaviso() {
         if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; }
         const btn = event.target;
@@ -643,21 +647,21 @@
                 doc.setFontSize(8); doc.text("Períodos concedidos e saldo consumido", pw/2, 24, {align:"center"});
                 y = 38;
                 doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10);
-                doc.text("Período (início → fim)", mx, y); doc.text("Horas totais", mx+70, y); doc.text("Horas usadas", mx+105, y); doc.text("Saldo", mx+140, y); doc.text("Motivo", mx+170, y);
+                doc.text("Período (início à fim)", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y);
                 y+=6;
                 doc.setFont("helvetica","normal"); doc.setFontSize(9);
                 let saldoTotal = 0;
                 for (let s of sobreavisos) {
                     let saldo = s.horasTotais - (s.horasUsadas || 0);
                     saldoTotal += saldo;
-                    let periodo = `${formatarDataBR(s.dataInicio)} ${s.horaInicio} → ${formatarDataBR(s.dataFim)} ${s.horaFim}`;
+                    let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim);
                     doc.text(periodo, mx, y);
-                    doc.text(formatHorasMinutos(s.horasTotais), mx+70, y);
-                    doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+105, y);
-                    doc.text(formatHorasMinutos(saldo), mx+140, y);
-                    doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+170, y);
+                    doc.text(formatHorasMinutos(s.horasTotais), mx+75, y);
+                    doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y);
+                    doc.text(formatHorasMinutos(saldo), mx+145, y);
+                    doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y);
                     y+=5;
-                    if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+70, y); doc.text("Horas usadas", mx+105, y); doc.text("Saldo", mx+140, y); doc.text("Motivo", mx+170, y); y+=5; }
+                    if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; }
                 }
                 y+=6;
                 doc.setFont("helvetica","bold");
@@ -690,18 +694,18 @@
                 doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10);
                 doc.text("1. EXCEDENTES AUTOMÁTICOS", mx, y); y+=6;
                 doc.setFont("helvetica","normal"); doc.setFontSize(9);
-                doc.text("Competência (16→15)", mx, y); doc.text("Horas no período", mx+65, y); doc.text("Excedente (>40h)", mx+120, y); y+=5;
+                doc.text("Competência (16→15)", mx, y); doc.text("Horas no período", mx+70, y); doc.text("Excedente (>40h)", mx+125, y); y+=5;
                 let totalAuto = 0;
                 for (let auto of excedentesAutomaticos) {
                     let [mes, ano] = auto.competencia.split('/');
-                    let periodoStr = `16/${mes}/${ano} a 15/${parseInt(mes)+1}/${ano}`;
+                    let periodoStr = `16/${mes}/${ano} à 15/${parseInt(mes)+1}/${ano}`;
                     let totalPeriodo = auto.horasExcedente + 40;
                     totalAuto += auto.horasExcedente;
                     doc.text(periodoStr, mx, y);
-                    doc.text(formatHorasMinutos(totalPeriodo), mx+65, y);
-                    doc.text(formatHorasMinutos(auto.horasExcedente), mx+120, y);
+                    doc.text(formatHorasMinutos(totalPeriodo), mx+70, y);
+                    doc.text(formatHorasMinutos(auto.horasExcedente), mx+125, y);
                     y+=5;
-                    if (y > 190) { doc.addPage(); y=25; doc.text("Competência", mx, y); doc.text("Horas no período", mx+65, y); doc.text("Excedente", mx+120, y); y+=5; }
+                    if (y > 190) { doc.addPage(); y=25; doc.text("Competência", mx, y); doc.text("Horas no período", mx+70, y); doc.text("Excedente", mx+125, y); y+=5; }
                 }
                 y+=8;
                 doc.setFont("helvetica","bold"); doc.text(`Total automático acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y); y+=10;
