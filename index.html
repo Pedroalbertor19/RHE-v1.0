@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras + Sobreaviso (Período) | Relatórios Ajustados</title>
+    <title>Horas Extras + Sobreaviso | Layout Melhorado</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -28,16 +28,16 @@
         table { width: 100%; min-width: 1000px; table-layout: fixed; border-collapse: collapse; font-size: 0.8rem; }
         th, td { padding: 10px 6px; border-bottom: 1px solid rgba(160,210,255,0.3); text-align: center; vertical-align: middle; word-break: break-word; }
         th { background: #0a374b80; }
-        /* Ajuste de larguras para evitar sobreposição */
-        .tabela-extras td:first-child, .tabela-extras th:first-child { width: 28%; white-space: normal; word-break: break-word; }
-        .tabela-extras td:nth-child(2), .tabela-extras th:nth-child(2) { width: 8%; }
-        .tabela-extras td:nth-child(3), .tabela-extras th:nth-child(3) { width: 8%; }
+        /* Novas larguras: período 26%, descrição 22%, demais ajustadas */
+        .tabela-extras td:first-child, .tabela-extras th:first-child { width: 26%; white-space: normal; word-break: break-word; }
+        .tabela-extras td:nth-child(2), .tabela-extras th:nth-child(2) { width: 7%; }
+        .tabela-extras td:nth-child(3), .tabela-extras th:nth-child(3) { width: 7%; }
         .tabela-extras td:nth-child(4), .tabela-extras th:nth-child(4) { width: 7%; }
-        .tabela-extras td:nth-child(5), .tabela-extras th:nth-child(5) { width: 10%; }
-        .tabela-extras td:nth-child(6), .tabela-extras th:nth-child(6) { width: 10%; }
-        .tabela-extras td:nth-child(7), .tabela-extras th:nth-child(7) { width: 10%; }
-        .tabela-extras td:nth-child(8), .tabela-extras th:nth-child(8) { width: 7%; }
-        .tabela-extras td:nth-child(9), .tabela-extras th:nth-child(9) { width: 12%; }
+        .tabela-extras td:nth-child(5), .tabela-extras th:nth-child(5) { width: 9%; }
+        .tabela-extras td:nth-child(6), .tabela-extras th:nth-child(6) { width: 9%; }
+        .tabela-extras td:nth-child(7), .tabela-extras th:nth-child(7) { width: 9%; }
+        .tabela-extras td:nth-child(8), .tabela-extras th:nth-child(8) { width: 6%; }
+        .tabela-extras td:nth-child(9), .tabela-extras th:nth-child(9) { width: 22%; white-space: normal; word-break: break-word; text-align: left; }
         .tabela-extras td:nth-child(10), .tabela-extras th:nth-child(10) { width: 7%; }
 
         .badge { background: #0e5d7a; padding: 4px 8px; border-radius: 50px; font-size: 0.7rem; white-space: nowrap; }
@@ -57,13 +57,13 @@
         @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
         @media (max-width: 700px) {
             .tabela-extras td, .tabela-extras th { font-size: 0.7rem; padding: 5px 2px; }
-            .tabela-extras td:first-child { font-size: 0.65rem; }
+            .tabela-extras td:first-child, .tabela-extras td:nth-child(9) { font-size: 0.65rem; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Gestão de Horas Extras <small>Sobreaviso (período) + Banco de Horas</small></h1>
+    <h1>⚖️ Gestão de Horas Extras <small>Sobreaviso + Banco de Horas</small></h1>
 
     <!-- Salário -->
     <div class="card">
@@ -100,7 +100,7 @@
         <div class="table-wrapper" style="margin-top: 1.5rem;">
             <h4>📋 Períodos de sobreaviso (créditos)</h4>
             <table style="min-width: 700px;">
-                <thead><tr><th>Período (início → fim)</th><th>Horas totais</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Período (início à fim)</th><th>Horas totais</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
                 <tbody id="tabelaSobreaviso"></tbody>
             </table>
         </div>
@@ -223,7 +223,6 @@
         if (fim <= inicio) return 0;
         return (fim - inicio) / 3600000;
     }
-    // Formata período com " à " em vez de "→"
     function formatarPeriodo(dataIni, horaIni, dataFim, horaFim) {
         return `${formatarDataBR(dataIni)} ${horaIni} à ${formatarDataBR(dataFim)} ${horaFim}`;
     }
@@ -470,11 +469,16 @@
         tbody.innerHTML = "";
         let totalManual = lancamentosManuais.reduce((acc, l) => acc + l.horas, 0);
         for (let l of lancamentosManuais) {
-            tbody.insertAdjacentHTML('beforeend', `<tr><td>${formatarDataBR(l.data)}</td><td>${formatHorasMinutos(l.horas)}</td><td>${l.motivo}</td><td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td></tr>`);
+            tbody.insertAdjacentHTML('beforeend', `<td>${formatarDataBR(l.data)}</td><td>${formatHorasMinutos(l.horas)}</td><td>${l.motivo}</td><td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td>`);
         }
         let totalAuto = excedentesAutomaticos.reduce((acc, a) => acc + a.horasExcedente, 0);
         let saldoTotal = totalAuto + totalManual;
-        document.getElementById("bancoTotal").innerHTML = `🏦 <strong>Saldo do banco de horas</strong><br>⚙️ Automático: ${formatHorasMinutos(totalAuto)}<br>✍️ Manuais: ${formatHorasMinutos(totalManual)}<br>🧾 <strong>SALDO TOTAL: ${formatHorasMinutos(saldoTotal)}</strong>`;
+        document.getElementById("bancoTotal").innerHTML = `
+            🏦 <strong>Saldo do banco de horas</strong><br>
+            ⚙️ Automático: ${formatHorasMinutos(totalAuto)}<br>
+            ✍️ Manuais: ${formatHorasMinutos(totalManual)}<br>
+            🧾 <strong>SALDO TOTAL: ${formatHorasMinutos(saldoTotal)}</strong>
+        `;
     }
 
     // ========== RENDERIZAÇÃO TABELA PRINCIPAL ==========
@@ -512,7 +516,7 @@
                 <td>R$ ${reg.valorNoturnoAdicional.toFixed(2)}</td>
                 <td><strong>R$ ${reg.valor.toFixed(2)}</strong></td>
                 <td>${badgeSobre}</td>
-                <td>${reg.descricao.substring(0,30)}</td>
+                <td style="text-align:left;">${reg.descricao.length > 50 ? reg.descricao.substring(0,47)+'...' : reg.descricao}</td>
                 <td><button class="delete-btn" onclick="removerRegistro(${idx})">Excluir</button></td>
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', row);
@@ -555,7 +559,7 @@
         alert("Salário atualizado!");
     }
 
-    // ========== PDF PRINCIPAL (LANDSCAPE) ==========
+    // ========== PDF PRINCIPAL (LANDSCAPE, DESCRIÇÃO MAIS LARGA) ==========
     async function gerarPDF() {
         if (salarioMensal <= 0) { alert("Defina o salário."); return; }
         let dados = aplicarFiltros();
@@ -578,8 +582,8 @@
                 doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4;
                 doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4;
                 doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8;
-                // Colunas ajustadas: período (65mm), total(12), not(12), vExtra(20), vNot(20), vTotal(20), sobre(10), desc(20)
-                const col = { per: mx, total: mx+65, not: mx+77, vExtra: mx+89, vNot: mx+109, vTotal: mx+129, sobre: mx+149, desc: mx+159 };
+                // Colunas: período (60mm), total(10), not(10), vExtra(15), vNot(15), vTotal(15), sobre(8), desc(35)
+                const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 };
                 function header() {
                     doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F');
                     doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold");
@@ -608,7 +612,7 @@
                     doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4);
                     doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4);
                     doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4);
-                    let desc = r.descricao.length>20 ? r.descricao.substring(0,17)+"..." : r.descricao;
+                    let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao;
                     doc.text(desc, col.desc+1, y+4);
                     y+=linhaH;
                 }
@@ -631,7 +635,7 @@
         }, 100);
     }
 
-    // PDF SOBREAVISO (PAISAGEM)
+    // PDF SOBREAVISO (já está bom)
     async function gerarPDFSobreaviso() {
         if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; }
         const btn = event.target;
@@ -676,7 +680,7 @@
         }, 100);
     }
 
-    // PDF BANCO DE HORAS (PAISAGEM)
+    // PDF BANCO DE HORAS (já está bom)
     async function gerarPDFBancoHoras() {
         if (excedentesAutomaticos.length === 0 && lancamentosManuais.length === 0) { alert("Nenhum movimento no banco."); return; }
         const btn = event.target;
