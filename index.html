@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras + Sobreaviso | Banco de Horas Corrigido</title>
+    <title>Horas Extras + Sobreaviso (exclui 05h-08h)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -62,7 +62,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Gestão de Horas Extras <small>Sobreaviso + Banco de Horas</small></h1>
+    <h1>⚖️ Gestão de Horas Extras <small>Sobreaviso (exclui 05h-08h)</small></h1>
 
     <!-- Salário -->
     <div class="card">
@@ -76,18 +76,18 @@
 
     <!-- Sobreaviso -->
     <div class="card">
-        <h3>📞 Sobreaviso (crédito automático por período)</h3>
+        <h3>📞 Sobreaviso (crédito automático excluindo 05:00–07:59)</h3>
         <div class="grid-2col">
             <div><label>Início</label><input type="date" id="sobreavisoInicioData"><input type="time" id="sobreavisoInicioHora"></div>
             <div><label>Fim</label><input type="date" id="sobreavisoFimData"><input type="time" id="sobreavisoFimHora"></div>
         </div>
         <div><label>Motivo</label><input type="text" id="sobreavisoMotivo" placeholder="Ex: Final de semana"></div>
         <button onclick="adicionarSobreavisoPorPeriodo()">➕ Adicionar período de sobreaviso</button>
-        <div class="info-note">O sistema calcula automaticamente as horas totais do período.</div>
+        <div class="info-note">O sistema exclui automaticamente o intervalo das 05:00 às 07:59 do total de horas de sobreaviso.</div>
         <div class="table-wrapper" style="margin-top: 1.5rem;">
-            <h4>📋 Períodos de sobreaviso (créditos)</h4>
+            <h4>📋 Períodos de sobreaviso (créditos líquidos)</h4>
             <table style="min-width: 700px;">
-                <thead><tr><th>Período (início → fim)</th><th>Horas totais</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Período (início → fim)</th><th>Horas totais (líquidas)</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
                 <tbody id="tabelaSobreaviso"></tbody>
             </table>
         </div>
@@ -171,6 +171,26 @@
     function calcularDuracaoHoras(sd, st, ed, et) { return (new Date(`${ed}T${et}:00`) - new Date(`${sd}T${st}:00`)) / 3600000; }
     function formatarPeriodo(sd, st, ed, et) { return `${formatarDataBR(sd)} ${st} à ${formatarDataBR(ed)} ${et}`; }
 
+    // NOVA FUNÇÃO: calcula horas líquidas de sobreaviso excluindo o intervalo 05:00-07:59 (minuto a minuto)
+    function calcularHorasSobreavisoLiquido(startDate, startTime, endDate, endTime) {
+        let inicio = new Date(`${startDate}T${startTime}:00`);
+        let fim = new Date(`${endDate}T${endTime}:00`);
+        if (fim <= inicio) return 0;
+        let minutosValidos = 0;
+        let current = new Date(inicio);
+        while (current < fim) {
+            let hora = current.getHours();
+            let minuto = current.getMinutes();
+            // intervalo excluído: das 05:00 até 07:59 (inclusive)
+            let isExcluido = (hora === 5 && minuto >= 0) || hora === 6 || hora === 7 || (hora === 7 && minuto <= 59);
+            if (!isExcluido) {
+                minutosValidos++;
+            }
+            current.setMinutes(current.getMinutes() + 1);
+        }
+        return minutosValidos / 60;
+    }
+
     function calcularHorasNoturnas(inicio, fim) {
         let minutos = 0, current = new Date(inicio);
         while (current < fim) { if (current.getHours() >= 22 || current.getHours() < 5) minutos++; current.setMinutes(current.getMinutes() + 1); }
@@ -210,8 +230,8 @@
         let motivo = document.getElementById("sobreavisoMotivo").value.trim();
         if (!di || !hi || !df || !hf) { alert("Preencha todos os campos."); return; }
         if (new Date(`${df}T${hf}:00`) <= new Date(`${di}T${hi}:00`)) { alert("Fim deve ser posterior ao início."); return; }
-        let horasTotais = calcularDuracaoHoras(di, hi, df, hf);
-        if (horasTotais <= 0) return;
+        let horasTotais = calcularHorasSobreavisoLiquido(di, hi, df, hf);
+        if (horasTotais <= 0) { alert("Período inválido ou todo dentro do intervalo excluído (05:00-07:59)."); return; }
         let novo = { id: Date.now(), dataInicio: di, horaInicio: hi, dataFim: df, horaFim: hf, horasTotais, horasUsadas: 0, motivo: motivo || "Sobreaviso" };
         sobreavisos.push(novo);
         localStorage.setItem("sobreavisos", JSON.stringify(sobreavisos));
@@ -219,7 +239,7 @@
         document.getElementById("sobreavisoFimData").value = ""; document.getElementById("sobreavisoFimHora").value = "";
         document.getElementById("sobreavisoMotivo").value = "";
         atualizarSaldoSobreaviso();
-        alert("Período adicionado!");
+        alert("Período adicionado (excluídas 05h-08h)!");
     }
     function removerSobreaviso(id) { if(confirm("Remover?")) { sobreavisos = sobreavisos.filter(s => s.id !== id); localStorage.setItem("sobreavisos", JSON.stringify(sobreavisos)); atualizarSaldoSobreaviso(); } }
     function atualizarSaldoSobreaviso() { let saldo = sobreavisos.reduce((a,s) => a + (s.horasTotais - (s.horasUsadas||0)), 0); document.getElementById("saldoSobreaviso").innerHTML = `📞 Saldo disponível: ${formatHorasMinutos(saldo)}`; renderizarTabelaSobreaviso(); return saldo; }
@@ -361,12 +381,11 @@
         alert("Salário atualizado!");
     }
 
-    // ========== PDFs ==========
-    async function gerarPDF() { /* mantido igual ao anterior, funcionando */ if (salarioMensal <= 0) { alert("Defina o salário."); return; } let dados = aplicarFiltros(); if(dados.length===0) { alert("Sem registros."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(); let y = 25, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("50% dias úteis | 100% domingos/feriados | Sobreaviso abate horas", pw/2, 24, {align:"center"}); y=38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text("INFORMAÇÕES", mx, y); y+=5; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4; doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4; doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8; const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 }; function header() { doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.text("Período (início à fim)", col.per+1, y+5); doc.text("Total", col.total+1, y+5); doc.text("Not.", col.not+1, y+5); doc.text("V.Extra", col.vExtra+1, y+5); doc.text("V.Not", col.vNot+1, y+5); doc.text("V.Total", col.vTotal+1, y+5); doc.text("Sobr.", col.sobre+1, y+5); doc.text("Descrição", col.desc+1, y+5); y+=7; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); } header(); let totalH=0,totalN=0,somaEx=0,somaNo=0,somaTot=0; const linhaH = 5.5; for(let r of dados) { totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor; if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); } let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime); doc.text(periodo, col.per+1, y+4); doc.text(formatHorasMinutos(r.horas), col.total+1, y+4); doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4); doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4); doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4); doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4); doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4); let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao; doc.text(desc, col.desc+1, y+4); y+=linhaH; } y+=6; if (y > ph-20) { doc.addPage(); y=20; } doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("RESUMO FINAL", mx, y); y+=5; doc.setFontSize(9); doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5; doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras + Sobreaviso", mx, ph-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; } }, 100); }
+    // ========== PDF PRINCIPAL (resumido para manter legibilidade) ==========
+    async function gerarPDF() { if (salarioMensal <= 0) { alert("Defina o salário."); return; } let dados = aplicarFiltros(); if(dados.length===0) { alert("Sem registros."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(); let y = 25, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("50% dias úteis | 100% domingos/feriados | Sobreaviso abate horas", pw/2, 24, {align:"center"}); y=38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text("INFORMAÇÕES", mx, y); y+=5; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4; doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4; doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8; const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 }; function header() { doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.text("Período (início à fim)", col.per+1, y+5); doc.text("Total", col.total+1, y+5); doc.text("Not.", col.not+1, y+5); doc.text("V.Extra", col.vExtra+1, y+5); doc.text("V.Not", col.vNot+1, y+5); doc.text("V.Total", col.vTotal+1, y+5); doc.text("Sobr.", col.sobre+1, y+5); doc.text("Descrição", col.desc+1, y+5); y+=7; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); } header(); let totalH=0,totalN=0,somaEx=0,somaNo=0,somaTot=0; const linhaH = 5.5; for(let r of dados) { totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor; if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); } let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime); doc.text(periodo, col.per+1, y+4); doc.text(formatHorasMinutos(r.horas), col.total+1, y+4); doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4); doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4); doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4); doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4); doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4); let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao; doc.text(desc, col.desc+1, y+4); y+=linhaH; } y+=6; if (y > ph-20) { doc.addPage(); y=20; } doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("RESUMO FINAL", mx, y); y+=5; doc.setFontSize(9); doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5; doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras + Sobreaviso", mx, ph-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; } }, 100); }
 
-    async function gerarPDFSobreaviso() { if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(); let y = 20, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE SOBREAVISO (PERÍODOS)", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Períodos concedidos e saldo consumido", pw/2, 24, {align:"center"}); y = 38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("Período (início à fim)", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9); let saldoTotal = 0; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas || 0); saldoTotal += saldo; let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); doc.text(periodo, mx, y); doc.text(formatHorasMinutos(s.horasTotais), mx+75, y); doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y); doc.text(formatHorasMinutos(saldo), mx+145, y); doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y); y+=5; if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; } } y+=6; doc.setFont("helvetica","bold"); doc.text(`Saldo total disponível: ${formatHorasMinutos(saldoTotal)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); doc.text("Relatório de Sobreaviso", mx, doc.internal.pageSize.getHeight()-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `sobreaviso_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 Relatório de sobreaviso"; btn.disabled = false; } }, 100); }
+    async function gerarPDFSobreaviso() { if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(); let y = 20, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE SOBREAVISO (exclui 05h-08h)", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Períodos concedidos e saldo consumido (horas líquidas)", pw/2, 24, {align:"center"}); y = 38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("Período (início à fim)", mx, y); doc.text("Horas totais (líq)", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9); let saldoTotal = 0; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas || 0); saldoTotal += saldo; let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); doc.text(periodo, mx, y); doc.text(formatHorasMinutos(s.horasTotais), mx+75, y); doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y); doc.text(formatHorasMinutos(saldo), mx+145, y); doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y); y+=5; if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; } } y+=6; doc.setFont("helvetica","bold"); doc.text(`Saldo total disponível: ${formatHorasMinutos(saldoTotal)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); doc.text("Relatório de Sobreaviso (exclui 05h-08h)", mx, doc.internal.pageSize.getHeight()-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `sobreaviso_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 Relatório de sobreaviso"; btn.disabled = false; } }, 100); }
 
-    // PDF DO BANCO DE HORAS - CORRIGIDO
     async function gerarPDFBancoHoras() {
         if (excedentesAutomaticos.length === 0 && lancamentosManuais.length === 0) { alert("Nenhum movimento no banco de horas."); return; }
         const btn = event.target;
@@ -388,7 +407,6 @@
                 doc.text("Horas no período", mx + 95, y);
                 doc.text("Excedente (>40h)", mx + 145, y);
                 y += 5;
-
                 let totalAuto = 0;
                 for (let auto of excedentesAutomaticos) {
                     let [mesStr, anoStr] = auto.competencia.split('/');
@@ -397,7 +415,6 @@
                     let mesFim = mes + 1;
                     let anoFim = ano;
                     if (mesFim > 12) { mesFim = 1; anoFim++; }
-                    // Formatação correta sem caracteres estranhos
                     let periodoStr = `16/${mes.toString().padStart(2,'0')}/${ano} à 15/${mesFim.toString().padStart(2,'0')}/${anoFim}`;
                     let totalPeriodo = auto.horasExcedente + 40;
                     totalAuto += auto.horasExcedente;
@@ -411,7 +428,6 @@
                 doc.setFont("helvetica","bold");
                 doc.text(`Total automático acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y);
                 y += 12;
-
                 doc.setFont("helvetica","bold");
                 doc.text("2. LANÇAMENTOS MANUAIS", mx, y); y += 6;
                 doc.setFont("helvetica","normal");
@@ -433,17 +449,11 @@
                 doc.setTextColor(0,100,0);
                 doc.text(`SALDO TOTAL DO BANCO DE HORAS: ${formatHorasMinutos(saldoFinal)}`, mx, y);
                 const pag = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pag; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(7);
-                    doc.setTextColor(100,100,100);
-                    doc.text(`Página ${i} de ${pag}`, pw - 18, doc.internal.pageSize.getHeight() - 10);
-                    doc.text("Banco de Horas", mx, doc.internal.pageSize.getHeight() - 10);
-                }
+                for (let i = 1; i <= pag; i++) { doc.setPage(i); doc.setFontSize(7); doc.setTextColor(100,100,100); doc.text(`Página ${i} de ${pag}`, pw - 18, doc.internal.pageSize.getHeight() - 10); doc.text("Banco de Horas", mx, doc.internal.pageSize.getHeight() - 10); }
                 pdfBlob = doc.output('blob');
                 document.getElementById("nomeArquivoPDF").value = `banco_horas_${new Date().toISOString().slice(0,10)}`;
                 document.getElementById("pdfModal").style.display = "block";
-            } catch (e) { alert("Erro ao gerar PDF do banco de horas: " + e); }
+            } catch (e) { alert("Erro: "+e); }
             finally { btn.innerHTML = "📄 Relatório do Banco"; btn.disabled = false; }
         }, 100);
     }
@@ -455,7 +465,6 @@
     function visualizarPDF() { if(pdfBlob) window.open(URL.createObjectURL(pdfBlob), '_blank'); fecharModal(); }
     function compartilharRelatorio() { if(pdfBlob) compartilharPDF(); else gerarPDF(); }
 
-    // INICIALIZAÇÃO
     function inicializar() {
         let salvo = localStorage.getItem("salarioPlus");
         if (salvo && !isNaN(parseFloat(salvo))) { salarioMensal = parseFloat(salvo); document.getElementById("salario").value = salarioMensal; }
