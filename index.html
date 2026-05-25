@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras | Sobreaviso 30% | Relatório Banco Horas Corrigido</title>
+    <title>Horas Extras | Sobreaviso 30% | Banco Horas - Texto Corrigido</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -119,7 +119,7 @@
         </div>
         <div class="table-wrapper"><table style="min-width: 500px;"><thead><tr><th>Data</th><th>Horas</th><th>Motivo</th><th></th></tr></thead><tbody id="tabelaLancamentosManuais"></tbody></table></div>
         <div id="bancoTotal" class="total"></div>
-        <div class="flex-buttons"><button onclick="gerarPDFBancoHoras()" class="btn-pdf">📄 Relatório do Banco (corrigido)</button></div>
+        <div class="flex-buttons"><button onclick="gerarPDFBancoHoras()" class="btn-pdf">📄 Relatório do Banco (texto corrigido)</button></div>
     </div>
 
     <!-- Filtros -->
@@ -352,7 +352,7 @@
         let tbody = document.getElementById("tabelaLancamentosManuais");
         tbody.innerHTML = "";
         let totalManual = lancamentosManuais.reduce((a,l) => a + l.horas, 0);
-        for (let l of lancamentosManuais) tbody.insertAdjacentHTML('beforeend', `<tr><td>${formatarDataBR(l.data)}</td><td>${formatHorasMinutos(l.horas)}</td><td>${l.motivo}</td><td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td>`);
+        for (let l of lancamentosManuais) tbody.insertAdjacentHTML('beforeend', `<tr><td style="text-align:left;">${formatarDataBR(l.data)}</td><td>${formatHorasMinutos(l.horas)}</td><td>${l.motivo}</td><td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td>`);
         let totalAuto = excedentesAutomaticos.reduce((a, e) => a + e.horasExcedente, 0);
         let saldo = totalAuto + totalManual;
         document.getElementById("bancoTotal").innerHTML = `🏦 Banco de Horas<br>⚙️ Automático: ${formatHorasMinutos(totalAuto)}<br>✍️ Manuais: ${formatHorasMinutos(totalManual)}<br>🧾 SALDO TOTAL: ${formatHorasMinutos(saldo)}`;
@@ -406,13 +406,13 @@
         alert("Salário atualizado e valores recalculados!");
     }
 
-    // ========== PDF PRINCIPAL (igual anterior) ==========
+    // ========== PDF PRINCIPAL ==========
     async function gerarPDF() { if (salarioMensal <= 0) { alert("Defina o salário."); return; } let dados = aplicarFiltros(); if(dados.length===0) { alert("Sem registros."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(); let y = 25, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Sobreaviso = 30% | Dias úteis = 50% | Domingos/feriados = 100%", pw/2, 24, {align:"center"}); y=38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text("INFORMAÇÕES", mx, y); y+=5; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4; doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4; doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8; const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 }; function header() { doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.text("Período", col.per+1, y+5); doc.text("Total", col.total+1, y+5); doc.text("Not.", col.not+1, y+5); doc.text("V.Extra", col.vExtra+1, y+5); doc.text("V.Not", col.vNot+1, y+5); doc.text("V.Total", col.vTotal+1, y+5); doc.text("Sobr.", col.sobre+1, y+5); doc.text("Descrição", col.desc+1, y+5); y+=7; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); } header(); let totalH=0,totalN=0,somaEx=0,somaNo=0,somaTot=0; const linhaH = 5.5; for(let r of dados) { totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor; if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); } let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime); doc.text(periodo, col.per+1, y+4); doc.text(formatHorasMinutos(r.horas), col.total+1, y+4); doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4); doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4); doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4); doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4); doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4); let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao; doc.text(desc, col.desc+1, y+4); y+=linhaH; } y+=6; if (y > ph-20) { doc.addPage(); y=20; } doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("RESUMO FINAL", mx, y); y+=5; doc.setFontSize(9); doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5; doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras", mx, ph-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; } }, 100); }
 
-    // PDF SOBREAVISO (sem alterações)
+    // ========== PDF SOBREAVISO ==========
     async function gerarPDFSobreaviso() { if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(); let y = 20, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE SOBREAVISO (exclui 05h-08h)", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Períodos concedidos e saldo consumido (horas líquidas)", pw/2, 24, {align:"center"}); y = 38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("Período (início → fim)", mx, y); doc.text("Horas totais (líq)", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9); let saldoTotal = 0; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas || 0); saldoTotal += saldo; let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); doc.text(periodo, mx, y); doc.text(formatHorasMinutos(s.horasTotais), mx+75, y); doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y); doc.text(formatHorasMinutos(saldo), mx+145, y); doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y); y+=5; if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; } } y+=6; doc.setFont("helvetica","bold"); doc.text(`Saldo total disponível: ${formatHorasMinutos(saldoTotal)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); doc.text("Relatório de Sobreaviso (exclui 05h-08h)", mx, doc.internal.pageSize.getHeight()-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `sobreaviso_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 Relatório de sobreaviso"; btn.disabled = false; } }, 100); }
 
-    // ========== PDF BANCO DE HORAS TOTALMENTE REVISADO (CABEÇALHO LEGÍVEL) ==========
+    // ========== PDF BANCO DE HORAS TOTALMENTE REVISADO (SEM CARACTERES ESPECIAIS) ==========
     async function gerarPDFBancoHoras() {
         if (excedentesAutomaticos.length === 0 && lancamentosManuais.length === 0) { 
             alert("Nenhum movimento no banco de horas."); 
@@ -425,30 +425,31 @@
             try {
                 const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 const pw = doc.internal.pageSize.getWidth();
-                let y = 25, mx = 12; // margem esquerda um pouco maior
+                let y = 25, mx = 12;
                 // Cabeçalho principal
                 doc.setFillColor(22, 60, 85);
                 doc.rect(0, 0, pw, 28, 'F');
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(14);
                 doc.text("RELATÓRIO DO BANCO DE HORAS", pw / 2, 15, { align: "center" });
+                // SUBTÍTULO CORRIGIDO - sem caracteres especiais
                 doc.setFontSize(9);
-                doc.text("Excedentes automáticos (>40h no período 16→15) + Lançamentos manuais", pw / 2, 24, { align: "center" });
+                doc.text("Excedentes automaticos (acima de 40h no periodo de 16 a 15 de cada mes) + Lancamentos manuais", pw / 2, 24, { align: "center" });
                 
                 y = 42;
                 doc.setTextColor(0, 0, 0);
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(11);
-                doc.text("1. EXCEDENTES AUTOMÁTICOS", mx, y);
+                doc.text("1. EXCEDENTES AUTOMATICOS", mx, y);
                 y += 7;
                 
                 // Cabeçalho da tabela de excedentes
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(9);
                 doc.setTextColor(40, 40, 40);
-                doc.text("Período (início à fim)", mx, y);
-                doc.text("Horas no período", mx + 95, y);
-                doc.text("Excedente (>40h)", mx + 145, y);
+                doc.text("Periodo (inicio ao fim)", mx, y);
+                doc.text("Horas no periodo", mx + 95, y);
+                doc.text("Excedente (acima de 40h)", mx + 145, y);
                 y += 5;
                 doc.setDrawColor(180, 180, 180);
                 doc.line(mx, y, pw - mx, y);
@@ -465,7 +466,7 @@
                     let mesFim = mes + 1;
                     let anoFim = ano;
                     if (mesFim > 12) { mesFim = 1; anoFim++; }
-                    let periodoStr = `16/${mes.toString().padStart(2,'0')}/${ano} à 15/${mesFim.toString().padStart(2,'0')}/${anoFim}`;
+                    let periodoStr = `16/${mes.toString().padStart(2,'0')}/${ano} a 15/${mesFim.toString().padStart(2,'0')}/${anoFim}`;
                     let totalPeriodo = auto.horasExcedente + 40;
                     totalAuto += auto.horasExcedente;
                     doc.text(periodoStr, mx, y);
@@ -476,9 +477,9 @@
                         doc.addPage();
                         y = 25;
                         doc.setFont("helvetica", "bold");
-                        doc.text("Período (início à fim)", mx, y);
-                        doc.text("Horas no período", mx + 95, y);
-                        doc.text("Excedente (>40h)", mx + 145, y);
+                        doc.text("Periodo (inicio ao fim)", mx, y);
+                        doc.text("Horas no periodo", mx + 95, y);
+                        doc.text("Excedente (acima de 40h)", mx + 145, y);
                         y += 5;
                         doc.line(mx, y, pw - mx, y);
                         y += 3;
@@ -487,13 +488,13 @@
                 }
                 y += 6;
                 doc.setFont("helvetica", "bold");
-                doc.text(`Total automático acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y);
+                doc.text(`Total automatico acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y);
                 y += 12;
                 
                 // Seção de lançamentos manuais
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(11);
-                doc.text("2. LANÇAMENTOS MANUAIS", mx, y);
+                doc.text("2. LANCAMENTOS MANUAIS", mx, y);
                 y += 7;
                 doc.setFontSize(9);
                 doc.text("Data", mx, y);
@@ -535,13 +536,12 @@
                 doc.setTextColor(0, 100, 0);
                 doc.text(`SALDO TOTAL DO BANCO DE HORAS: ${formatHorasMinutos(saldoFinal)}`, mx, y);
                 
-                // Numeração de páginas
                 const pag = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pag; i++) {
                     doc.setPage(i);
                     doc.setFontSize(7);
                     doc.setTextColor(100, 100, 100);
-                    doc.text(`Página ${i} de ${pag}`, pw - 20, doc.internal.pageSize.getHeight() - 8);
+                    doc.text(`Pagina ${i} de ${pag}`, pw - 20, doc.internal.pageSize.getHeight() - 8);
                     doc.text("Banco de Horas", mx, doc.internal.pageSize.getHeight() - 8);
                 }
                 pdfBlob = doc.output('blob');
