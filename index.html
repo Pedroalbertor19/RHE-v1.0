@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras + Sobreaviso (exclui 05h-08h)</title>
+    <title>Horas Extras | Sobreaviso com 30% | Exclui 05h-08h</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -31,16 +31,17 @@
         .tabela-extras td:first-child, .tabela-extras th:first-child { width: 26%; white-space: normal; word-break: break-word; }
         .tabela-extras td:nth-child(2), .tabela-extras th:nth-child(2) { width: 7%; }
         .tabela-extras td:nth-child(3), .tabela-extras th:nth-child(3) { width: 7%; }
-        .tabela-extras td:nth-child(4), .tabela-extras th:nth-child(4) { width: 7%; }
+        .tabela-extras td:nth-child(4), .tabela-extras th:nth-child(4) { width: 9%; }
         .tabela-extras td:nth-child(5), .tabela-extras th:nth-child(5) { width: 9%; }
         .tabela-extras td:nth-child(6), .tabela-extras th:nth-child(6) { width: 9%; }
         .tabela-extras td:nth-child(7), .tabela-extras th:nth-child(7) { width: 9%; }
         .tabela-extras td:nth-child(8), .tabela-extras th:nth-child(8) { width: 6%; }
-        .tabela-extras td:nth-child(9), .tabela-extras th:nth-child(9) { width: 22%; white-space: normal; word-break: break-word; text-align: left; }
+        .tabela-extras td:nth-child(9), .tabela-extras th:nth-child(9) { width: 20%; white-space: normal; word-break: break-word; text-align: left; }
         .tabela-extras td:nth-child(10), .tabela-extras th:nth-child(10) { width: 7%; }
 
         .badge { background: #0e5d7a; padding: 4px 8px; border-radius: 50px; font-size: 0.7rem; white-space: nowrap; }
         .badge-sobreaviso { background: #2c7a4d; }
+        .badge-30 { background: #b85c00; }
         .total { background: #021c28aa; padding: 16px; border-radius: 28px; text-align: center; margin-top: 1rem; }
         .delete-btn { background: #b91c1c99; padding: 4px 8px; width: auto; }
         .flex-buttons { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
@@ -62,7 +63,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Gestão de Horas Extras <small>Sobreaviso (exclui 05h-08h)</small></h1>
+    <h1>⚖️ Horas Extras <small>Sobreaviso reduz para 30% | Exclui 05h-08h</small></h1>
 
     <!-- Salário -->
     <div class="card">
@@ -76,18 +77,18 @@
 
     <!-- Sobreaviso -->
     <div class="card">
-        <h3>📞 Sobreaviso (crédito automático excluindo 05:00–07:59)</h3>
+        <h3>📞 Sobreaviso (crédito exclui 05:00–07:59)</h3>
         <div class="grid-2col">
             <div><label>Início</label><input type="date" id="sobreavisoInicioData"><input type="time" id="sobreavisoInicioHora"></div>
             <div><label>Fim</label><input type="date" id="sobreavisoFimData"><input type="time" id="sobreavisoFimHora"></div>
         </div>
         <div><label>Motivo</label><input type="text" id="sobreavisoMotivo" placeholder="Ex: Final de semana"></div>
         <button onclick="adicionarSobreavisoPorPeriodo()">➕ Adicionar período de sobreaviso</button>
-        <div class="info-note">O sistema exclui automaticamente o intervalo das 05:00 às 07:59 do total de horas de sobreaviso.</div>
+        <div class="info-note">O sistema exclui automaticamente o intervalo 05h-08h do total de horas de sobreaviso.</div>
         <div class="table-wrapper" style="margin-top: 1.5rem;">
             <h4>📋 Períodos de sobreaviso (créditos líquidos)</h4>
             <table style="min-width: 700px;">
-                <thead><tr><th>Período (início → fim)</th><th>Horas totais (líquidas)</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Período (início → fim)</th><th>Horas totais (líq)</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
                 <tbody id="tabelaSobreaviso"></tbody>
             </table>
         </div>
@@ -102,11 +103,11 @@
             <div><label>Data INÍCIO</label><input type="date" id="inicioData"><label>Hora INÍCIO</label><input type="time" id="inicioHora"></div>
             <div><label>Data SAÍDA</label><input type="date" id="fimData"><label>Hora SAÍDA</label><input type="time" id="fimHora"></div>
         </div>
-        <div class="checkbox-row"><input type="checkbox" id="feriadoManualCheckbox"><label>📅 Marque se este período é em <strong>feriado (adicional 100%)</strong></label></div>
-        <div class="checkbox-row"><input type="checkbox" id="usarSobreavisoCheckbox"><label>🔁 <strong>Descontar do sobreaviso</strong> (as horas serão abatidas do saldo)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="feriadoManualCheckbox"><label>📅 Marque se este período é em <strong>feriado (adicional 100%)</strong> — só vale se NÃO usar sobreaviso</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="usarSobreavisoCheckbox"><label>🔁 <strong>Descontar do sobreaviso</strong> (adicional reduz para 30%)</label></div>
         <div><textarea id="descricaoExtra" rows="2" placeholder="Descrição"></textarea></div>
         <button onclick="adicionarRegistro()">Adicionar Registro</button>
-        <div class="info-note">🌙 Adicional noturno (20%) automático entre 22h e 5h. Domingos/feriados nacionais = 100%; checkbox força 100%.</div>
+        <div class="info-note">🌙 Adicional noturno (20%) sempre aplicado. <br>✅ Com sobreaviso → adicional extra de 30%. <br>✅ Sem sobreaviso → dias úteis 50%, domingos/feriados 100%.</div>
     </div>
 
     <!-- Banco de Horas -->
@@ -140,7 +141,7 @@
     <!-- Histórico -->
     <div class="card">
         <h3>📋 Histórico de Horas Extras</h3>
-        <div class="table-wrapper"><table class="tabela-extras"><thead><tr><th>Período</th><th>Total hrs</th><th>Hrs noturnas</th><th>Adicional</th><th>Valor Extra</th><th>Adic. Noturno</th><th>Valor Total</th><th>Sobreaviso?</th><th>Descrição</th><th></th></tr></thead><tbody id="tabelaRegistros"></tbody></table></div>
+        <div class="table-wrapper"><table class="tabela-extras"><thead><tr><th>Período</th><th>Total hrs</th><th>Hrs noturnas</th><th>Adicional Extra</th><th>Valor Extra</th><th>Adic. Noturno</th><th>Valor Total</th><th>Sobreaviso?</th><th>Descrição</th><th></th></tr></thead><tbody id="tabelaRegistros"></tbody></table></div>
         <div id="totaisContainer" class="total"></div>
     </div>
 </div>
@@ -171,7 +172,7 @@
     function calcularDuracaoHoras(sd, st, ed, et) { return (new Date(`${ed}T${et}:00`) - new Date(`${sd}T${st}:00`)) / 3600000; }
     function formatarPeriodo(sd, st, ed, et) { return `${formatarDataBR(sd)} ${st} à ${formatarDataBR(ed)} ${et}`; }
 
-    // NOVA FUNÇÃO: calcula horas líquidas de sobreaviso excluindo o intervalo 05:00-07:59 (minuto a minuto)
+    // Cálculo de horas líquidas de sobreaviso (exclui 05h-08h)
     function calcularHorasSobreavisoLiquido(startDate, startTime, endDate, endTime) {
         let inicio = new Date(`${startDate}T${startTime}:00`);
         let fim = new Date(`${endDate}T${endTime}:00`);
@@ -180,12 +181,8 @@
         let current = new Date(inicio);
         while (current < fim) {
             let hora = current.getHours();
-            let minuto = current.getMinutes();
-            // intervalo excluído: das 05:00 até 07:59 (inclusive)
-            let isExcluido = (hora === 5 && minuto >= 0) || hora === 6 || hora === 7 || (hora === 7 && minuto <= 59);
-            if (!isExcluido) {
-                minutosValidos++;
-            }
+            let isExcluido = (hora === 5 && current.getMinutes() >= 0) || hora === 6 || hora === 7 || (hora === 7 && current.getMinutes() <= 59);
+            if (!isExcluido) minutosValidos++;
             current.setMinutes(current.getMinutes() + 1);
         }
         return minutosValidos / 60;
@@ -197,18 +194,27 @@
         return minutos / 60;
     }
 
-    function calcularRateioPorDia(sd, st, ed, et, forcarFeriado = false) {
+    // NOVO: cálculo do rateio com percentual extra dinâmico
+    // Parâmetros: datas, se é feriado forçado (100%), e se está compensado pelo sobreaviso (30%)
+    function calcularRateioPorDia(sd, st, ed, et, forcarFeriado = false, usarPercentual30 = false) {
         let inicio = new Date(`${sd}T${st}:00`), fim = new Date(`${ed}T${et}:00`);
         if (fim <= inicio) return { totalHoras:0, horasNoturnas:0, valorExtraPuro:0, valorAdicionalNoturno:0, valorTotal:0 };
         const valorHoraBase = salarioMensal / 220;
-        let acumHoras = 0, acumNoturnas = 0, acumExtraPuro = 0, acumNoturnoPuro = 0, current = new Date(inicio);
+        let acumHoras = 0, acumNoturnas = 0, acumExtraPuro = 0, acumNoturnoPuro = 0;
+        let current = new Date(inicio);
         while (current < fim) {
             let inicioMinuto = new Date(current), fimMinuto = new Date(current);
             fimMinuto.setMinutes(fimMinuto.getMinutes() + 1);
             if (fimMinuto > fim) fimMinuto = fim;
             let horaNoPeriodo = (fimMinuto - inicioMinuto) / 60000 / 60;
             let dataStr = inicioMinuto.toISOString().slice(0,10);
-            let percExtra = (forcarFeriado || inicioMinuto.getDay() === 0 || isFeriadoNacional(dataStr)) ? 100 : 50;
+            let percExtra;
+            if (usarPercentual30) {
+                percExtra = 30; // Sobreaviso: adicional reduzido para 30%
+            } else {
+                // Regra normal: feriado forçado ou domingo/feriado nacional = 100%, senão 50%
+                percExtra = (forcarFeriado || inicioMinuto.getDay() === 0 || isFeriadoNacional(dataStr)) ? 100 : 50;
+            }
             let isNoturno = (inicioMinuto.getHours() >= 22 || inicioMinuto.getHours() < 5);
             let valorBaseMinuto = valorHoraBase * horaNoPeriodo;
             let adicionalNoturnoMinuto = isNoturno ? valorBaseMinuto * 0.20 : 0;
@@ -223,7 +229,7 @@
         return { totalHoras: acumHoras, horasNoturnas: acumNoturnas, valorExtraPuro: acumExtraPuro, valorAdicionalNoturno: acumNoturnoPuro, valorTotal };
     }
 
-    // SOBREAVISO
+    // ========== SOBREAVISO ==========
     function adicionarSobreavisoPorPeriodo() {
         let di = document.getElementById("sobreavisoInicioData").value, hi = document.getElementById("sobreavisoInicioHora").value;
         let df = document.getElementById("sobreavisoFimData").value, hf = document.getElementById("sobreavisoFimHora").value;
@@ -231,7 +237,7 @@
         if (!di || !hi || !df || !hf) { alert("Preencha todos os campos."); return; }
         if (new Date(`${df}T${hf}:00`) <= new Date(`${di}T${hi}:00`)) { alert("Fim deve ser posterior ao início."); return; }
         let horasTotais = calcularHorasSobreavisoLiquido(di, hi, df, hf);
-        if (horasTotais <= 0) { alert("Período inválido ou todo dentro do intervalo excluído (05:00-07:59)."); return; }
+        if (horasTotais <= 0) { alert("Período inválido ou todo dentro do intervalo excluído (05h-08h)."); return; }
         let novo = { id: Date.now(), dataInicio: di, horaInicio: hi, dataFim: df, horaFim: hf, horasTotais, horasUsadas: 0, motivo: motivo || "Sobreaviso" };
         sobreavisos.push(novo);
         localStorage.setItem("sobreavisos", JSON.stringify(sobreavisos));
@@ -246,7 +252,7 @@
     function renderizarTabelaSobreaviso() { let tbody = document.getElementById("tabelaSobreaviso"); tbody.innerHTML = ""; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas||0); let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); tbody.insertAdjacentHTML('beforeend', `<tr><td style="text-align:left;">${periodo}</td><td>${formatHorasMinutos(s.horasTotais)}</td><td>${formatHorasMinutos(s.horasUsadas||0)}</td><td><strong>${formatHorasMinutos(saldo)}</strong></td><td>${s.motivo}</td><td><button class="delete-btn" onclick="removerSobreaviso(${s.id})">Excluir</button></td>`); } }
     function consumirSobreaviso(horas) { let restante = horas; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas||0); if (saldo <= 0) continue; let consumir = Math.min(restante, saldo); s.horasUsadas = (s.horasUsadas||0) + consumir; restante -= consumir; if (restante <= 0) break; } localStorage.setItem("sobreavisos", JSON.stringify(sobreavisos)); atualizarSaldoSobreaviso(); return horas - restante; }
 
-    // REGISTROS HORAS EXTRAS
+    // ========== REGISTROS DE HORAS EXTRAS ==========
     function adicionarRegistro() {
         let di = document.getElementById("inicioData").value, hi = document.getElementById("inicioHora").value;
         let df = document.getElementById("fimData").value, hf = document.getElementById("fimHora").value;
@@ -255,16 +261,32 @@
         let desc = document.getElementById("descricaoExtra").value.trim();
         if (!di || !hi || !df || !hf) { alert("Preencha tudo"); return; }
         if (new Date(`${df}T${hf}:00`) <= new Date(`${di}T${hi}:00`)) { alert("Saída posterior ao início"); return; }
-        let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = calcularRateioPorDia(di, hi, df, hf, feriado);
-        let compensadas = 0;
+        // Se usar sobreaviso, o percentual extra será 30% (usarPercentual30 = true)
+        let usarPercentual30 = usarSobre;
+        let { totalHoras, horasNoturnas, valorExtraPuro, valorAdicionalNoturno, valorTotal } = calcularRateioPorDia(di, hi, df, hf, feriado, usarPercentual30);
+        let horasCompensadas = 0;
         if (usarSobre) {
             let saldo = sobreavisos.reduce((a,s)=>a+(s.horasTotais-(s.horasUsadas||0)),0);
             if (saldo <= 0) { alert("Sem saldo de sobreaviso."); return; }
-            compensadas = consumirSobreaviso(totalHoras);
-            if (compensadas < totalHoras) alert(`Apenas ${formatHorasMinutos(compensadas)} compensadas.`);
-            else alert(`Compensada integralmente (${formatHorasMinutos(totalHoras)}).`);
+            horasCompensadas = consumirSobreaviso(totalHoras);
+            if (horasCompensadas < totalHoras) alert(`Apenas ${formatHorasMinutos(horasCompensadas)} compensadas.`);
+            else alert(`Compensada integralmente com adicional de 30% (${formatHorasMinutos(totalHoras)}).`);
         }
-        let novo = { id: Date.now(), startDate: di, startTime: hi, endDate: df, endTime: hf, horas: totalHoras, horasNoturnas, feriadoManual: feriado, valorExtra: valorExtraPuro, valorNoturnoAdicional: valorAdicionalNoturno, valor: valorTotal, descricao: desc || "sem descrição", compensadoSobreaviso: usarSobre, horasCompensadas: compensadas };
+        let novo = {
+            id: Date.now(),
+            startDate: di, startTime: hi,
+            endDate: df, endTime: hf,
+            horas: totalHoras, horasNoturnas: horasNoturnas,
+            feriadoManual: feriado,
+            compensadoSobreaviso: usarSobre,
+            // percentual usado: se usarSobre = 30, senão (feriado?100:50) - armazenamos para exibição
+            percentualExtra: usarSobre ? 30 : (feriado ? 100 : ( () => { let d = new Date(di); return (d.getDay()===0 || isFeriadoNacional(di)) ? 100 : 50; })() ),
+            valorExtra: valorExtraPuro,
+            valorNoturnoAdicional: valorAdicionalNoturno,
+            valor: valorTotal,
+            descricao: desc || "sem descrição",
+            horasCompensadas: horasCompensadas
+        };
         registros.push(novo);
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
         atualizarBancoAutomatico();
@@ -276,7 +298,7 @@
     }
     function removerRegistro(idx) { if(confirm("Excluir?")) { if(registros[idx].compensadoSobreaviso) alert("Atenção: este registro usou sobreaviso. Ajuste manualmente se necessário."); registros.splice(idx,1); localStorage.setItem("horasExtrasPlus", JSON.stringify(registros)); atualizarBancoAutomatico(); renderizarTabela(); } }
 
-    // BANCO DE HORAS AUTOMÁTICO
+    // ========== BANCO DE HORAS AUTOMÁTICO ==========
     function getCompetencia(data) {
         let ano = data.getFullYear(), mes = data.getMonth();
         if (data.getDate() >= 16) return `${(mes+1).toString().padStart(2,'0')}/${ano}`;
@@ -313,7 +335,7 @@
         renderizarBancoHoras();
     }
 
-    // LANÇAMENTOS MANUAIS
+    // ========== LANÇAMENTOS MANUAIS ==========
     function adicionarLancamentoManual() {
         let horas = parseFloat(document.getElementById("horasManual").value);
         let data = document.getElementById("dataManual").value;
@@ -335,13 +357,13 @@
         let tbody = document.getElementById("tabelaLancamentosManuais");
         tbody.innerHTML = "";
         let totalManual = lancamentosManuais.reduce((a,l) => a + l.horas, 0);
-        for (let l of lancamentosManuais) tbody.insertAdjacentHTML('beforeend', `<tr><td>${formatarDataBR(l.data)}</td><td>${formatHorasMinutos(l.horas)}</td><td>${l.motivo}</td><td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td>`);
+        for (let l of lancamentosManuais) tbody.insertAdjacentHTML('beforeend', `<td>${formatarDataBR(l.data)}</td><td>${formatHorasMinutos(l.horas)}</td><td>${l.motivo}</td><td><button class="delete-btn" onclick="removerLancamentoManual(${l.id})">Excluir</button></td>`);
         let totalAuto = excedentesAutomaticos.reduce((a, e) => a + e.horasExcedente, 0);
         let saldo = totalAuto + totalManual;
         document.getElementById("bancoTotal").innerHTML = `🏦 Banco de Horas<br>⚙️ Automático: ${formatHorasMinutos(totalAuto)}<br>✍️ Manuais: ${formatHorasMinutos(totalManual)}<br>🧾 SALDO TOTAL: ${formatHorasMinutos(saldo)}`;
     }
 
-    // TABELA PRINCIPAL
+    // ========== RENDERIZAÇÃO TABELA PRINCIPAL ==========
     function aplicarFiltros() {
         let mes = document.getElementById("filtroMes").value;
         let desc = document.getElementById("filtroDescricao").value.toLowerCase();
@@ -357,7 +379,10 @@
         filtrados.forEach(r => {
             totalHoras += r.horas; totalNot += r.horasNoturnas; totalEx += r.valorExtra; totalNoAd += r.valorNoturnoAdicional; totalG += r.valor;
             let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime);
-            let badgeAdic = r.feriadoManual ? '<span class="badge">100% (marcado)</span>' : '<span class="badge">auto</span>';
+            let badgeAdic;
+            if (r.compensadoSobreaviso) badgeAdic = '<span class="badge badge-30">30% (sobreaviso)</span>';
+            else if (r.feriadoManual || (new Date(r.startDate).getDay()===0 || isFeriadoNacional(r.startDate))) badgeAdic = '<span class="badge">100% (dom/fer)</span>';
+            else badgeAdic = '<span class="badge">50%</span>';
             let badgeSob = r.compensadoSobreaviso ? '<span class="badge badge-sobreaviso">Sim</span>' : '<span class="badge">Não</span>';
             let idx = registros.findIndex(reg => reg.id === r.id);
             tbody.insertAdjacentHTML('beforeend', `<tr><td style="text-align:left;">${periodo}</td><td>${formatHorasMinutos(r.horas)}</td><td>${formatHorasMinutos(r.horasNoturnas)}</td><td>${badgeAdic}</td><td>R$ ${r.valorExtra.toFixed(2)}</td><td>R$ ${r.valorNoturnoAdicional.toFixed(2)}</td><td><strong>R$ ${r.valor.toFixed(2)}</strong></td><td>${badgeSob}</td><td style="text-align:left;">${r.descricao.length>50?r.descricao.substring(0,47)+'...':r.descricao}</td><td><button class="delete-btn" onclick="removerRegistro(${idx})">Excluir</button></td>`);
@@ -373,19 +398,27 @@
         if(isNaN(val)) val=0;
         salarioMensal = val;
         localStorage.setItem("salarioPlus", salarioMensal);
-        for(let r of registros) { let vals = calcularRateioPorDia(r.startDate, r.startTime, r.endDate, r.endTime, r.feriadoManual); r.horas = vals.totalHoras; r.horasNoturnas = vals.horasNoturnas; r.valorExtra = vals.valorExtraPuro; r.valorNoturnoAdicional = vals.valorAdicionalNoturno; r.valor = vals.valorTotal; }
+        // Recalcula todos os registros com o novo salário e a regra de percentual
+        for(let r of registros) {
+            let usarPercentual30 = r.compensadoSobreaviso;
+            let vals = calcularRateioPorDia(r.startDate, r.startTime, r.endDate, r.endTime, r.feriadoManual, usarPercentual30);
+            r.horas = vals.totalHoras; r.horasNoturnas = vals.horasNoturnas;
+            r.valorExtra = vals.valorExtraPuro; r.valorNoturnoAdicional = vals.valorAdicionalNoturno; r.valor = vals.valorTotal;
+        }
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
         atualizarBancoAutomatico();
         renderizarTabela();
         document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
-        alert("Salário atualizado!");
+        alert("Salário atualizado e valores recalculados!");
     }
 
-    // ========== PDF PRINCIPAL (resumido para manter legibilidade) ==========
-    async function gerarPDF() { if (salarioMensal <= 0) { alert("Defina o salário."); return; } let dados = aplicarFiltros(); if(dados.length===0) { alert("Sem registros."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(); let y = 25, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("50% dias úteis | 100% domingos/feriados | Sobreaviso abate horas", pw/2, 24, {align:"center"}); y=38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text("INFORMAÇÕES", mx, y); y+=5; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4; doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4; doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8; const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 }; function header() { doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.text("Período (início à fim)", col.per+1, y+5); doc.text("Total", col.total+1, y+5); doc.text("Not.", col.not+1, y+5); doc.text("V.Extra", col.vExtra+1, y+5); doc.text("V.Not", col.vNot+1, y+5); doc.text("V.Total", col.vTotal+1, y+5); doc.text("Sobr.", col.sobre+1, y+5); doc.text("Descrição", col.desc+1, y+5); y+=7; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); } header(); let totalH=0,totalN=0,somaEx=0,somaNo=0,somaTot=0; const linhaH = 5.5; for(let r of dados) { totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor; if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); } let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime); doc.text(periodo, col.per+1, y+4); doc.text(formatHorasMinutos(r.horas), col.total+1, y+4); doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4); doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4); doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4); doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4); doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4); let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao; doc.text(desc, col.desc+1, y+4); y+=linhaH; } y+=6; if (y > ph-20) { doc.addPage(); y=20; } doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("RESUMO FINAL", mx, y); y+=5; doc.setFontSize(9); doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5; doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras + Sobreaviso", mx, ph-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; } }, 100); }
+    // ========== PDF PRINCIPAL (com indicador de 30%) ==========
+    async function gerarPDF() { if (salarioMensal <= 0) { alert("Defina o salário."); return; } let dados = aplicarFiltros(); if(dados.length===0) { alert("Sem registros."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(); let y = 25, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Sobreaviso = 30% | Dias úteis = 50% | Domingos/feriados = 100%", pw/2, 24, {align:"center"}); y=38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text("INFORMAÇÕES", mx, y); y+=5; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4; doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4; doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8; const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 }; function header() { doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.text("Período", col.per+1, y+5); doc.text("Total", col.total+1, y+5); doc.text("Not.", col.not+1, y+5); doc.text("V.Extra", col.vExtra+1, y+5); doc.text("V.Not", col.vNot+1, y+5); doc.text("V.Total", col.vTotal+1, y+5); doc.text("Sobr.", col.sobre+1, y+5); doc.text("Descrição", col.desc+1, y+5); y+=7; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); } header(); let totalH=0,totalN=0,somaEx=0,somaNo=0,somaTot=0; const linhaH = 5.5; for(let r of dados) { totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor; if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); } let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime); doc.text(periodo, col.per+1, y+4); doc.text(formatHorasMinutos(r.horas), col.total+1, y+4); doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4); doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4); doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4); doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4); doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4); let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao; doc.text(desc, col.desc+1, y+4); y+=linhaH; } y+=6; if (y > ph-20) { doc.addPage(); y=20; } doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("RESUMO FINAL", mx, y); y+=5; doc.setFontSize(9); doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5; doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras", mx, ph-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; } }, 100); }
 
+    // PDF SOBREAVISO (idêntico ao anterior, sem alterações relevantes)
     async function gerarPDFSobreaviso() { if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(); let y = 20, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE SOBREAVISO (exclui 05h-08h)", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Períodos concedidos e saldo consumido (horas líquidas)", pw/2, 24, {align:"center"}); y = 38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("Período (início à fim)", mx, y); doc.text("Horas totais (líq)", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9); let saldoTotal = 0; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas || 0); saldoTotal += saldo; let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); doc.text(periodo, mx, y); doc.text(formatHorasMinutos(s.horasTotais), mx+75, y); doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y); doc.text(formatHorasMinutos(saldo), mx+145, y); doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y); y+=5; if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; } } y+=6; doc.setFont("helvetica","bold"); doc.text(`Saldo total disponível: ${formatHorasMinutos(saldoTotal)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); doc.text("Relatório de Sobreaviso (exclui 05h-08h)", mx, doc.internal.pageSize.getHeight()-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `sobreaviso_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 Relatório de sobreaviso"; btn.disabled = false; } }, 100); }
 
+    // PDF BANCO DE HORAS (idêntico ao anterior)
     async function gerarPDFBancoHoras() {
         if (excedentesAutomaticos.length === 0 && lancamentosManuais.length === 0) { alert("Nenhum movimento no banco de horas."); return; }
         const btn = event.target;
@@ -474,7 +507,12 @@
         excedentesAutomaticos = JSON.parse(localStorage.getItem("excedentesAutomaticos")) || [];
         sobreavisos = JSON.parse(localStorage.getItem("sobreavisos")) || [];
         document.getElementById("salarioStatus").innerHTML = `💰 Salário: R$ ${salarioMensal.toFixed(2)} | Hora base: R$ ${(salarioMensal/220).toFixed(2)} | Hora noturna: R$ ${((salarioMensal/220)*1.2).toFixed(2)}`;
-        for (let r of registros) { let vals = calcularRateioPorDia(r.startDate, r.startTime, r.endDate, r.endTime, r.feriadoManual); r.horas = vals.totalHoras; r.horasNoturnas = vals.horasNoturnas; r.valorExtra = vals.valorExtraPuro; r.valorNoturnoAdicional = vals.valorAdicionalNoturno; r.valor = vals.valorTotal; }
+        for (let r of registros) {
+            let usarPercentual30 = r.compensadoSobreaviso;
+            let vals = calcularRateioPorDia(r.startDate, r.startTime, r.endDate, r.endTime, r.feriadoManual, usarPercentual30);
+            r.horas = vals.totalHoras; r.horasNoturnas = vals.horasNoturnas;
+            r.valorExtra = vals.valorExtraPuro; r.valorNoturnoAdicional = vals.valorAdicionalNoturno; r.valor = vals.valorTotal;
+        }
         localStorage.setItem("horasExtrasPlus", JSON.stringify(registros));
         atualizarBancoAutomatico();
         renderizarTabela();
