@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Horas Extras | Sobreaviso 33,33% com faixas específicas</title>
+    <title>Horas Extras | Sobreaviso por Faixa de Horário + Exclusão 05h-08h</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -63,7 +63,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>⚖️ Horas Extras <small>Sobreaviso 33,33% (faixas específicas)</small></h1>
+    <h1>⚖️ Horas Extras <small>Sobreaviso 33,33% | Faixas horárias personalizadas</small></h1>
 
     <!-- Salário -->
     <div class="card">
@@ -77,23 +77,24 @@
 
     <!-- Sobreaviso -->
     <div class="card">
-        <h3>📞 Sobreaviso (crédito calculado por faixa)</h3>
+        <h3>📞 Sobreaviso (crédito por faixa de horário + exclusão 05h-08h)</h3>
+        <div class="info-note" style="margin-bottom: 1rem; text-align: left;">
+            <strong>Regras de contabilização:</strong><br>
+            • Segunda a quinta: das 18:01 às 07:59 do dia seguinte<br>
+            • Sexta-feira: das 17:01 às 07:59 do sábado<br>
+            • Sábado e domingo: dia inteiro (00:00 às 23:59)<br>
+            • <strong>Exclusão automática do intervalo 05:00–07:59 em todos os dias</strong>
+        </div>
         <div class="grid-2col">
             <div><label>Início</label><input type="date" id="sobreavisoInicioData"><input type="time" id="sobreavisoInicioHora"></div>
             <div><label>Fim</label><input type="date" id="sobreavisoFimData"><input type="time" id="sobreavisoFimHora"></div>
         </div>
         <div><label>Motivo</label><input type="text" id="sobreavisoMotivo" placeholder="Ex: Final de semana"></div>
         <button onclick="adicionarSobreavisoPorPeriodo()">➕ Adicionar período de sobreaviso</button>
-        <div class="info-note">
-            ✅ Regras para contagem do crédito:<br>
-            • Segunda a quinta: das 18:01 às 23:59<br>
-            • Sexta-feira: das 17:01 às 23:59<br>
-            • Sábado e domingo: dia todo (00:00 às 23:59)
-        </div>
         <div class="table-wrapper" style="margin-top: 1.5rem;">
-            <h4>📋 Períodos de sobreaviso (créditos)</h4>
+            <h4>📋 Períodos de sobreaviso (créditos líquidos)</h4>
             <table style="min-width: 700px;">
-                <thead><tr><th>Período (início → fim)</th><th>Horas totais (crédito)</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Período (início → fim)</th><th>Horas totais (líq)</th><th>Horas usadas</th><th>Saldo</th><th>Motivo</th><th>Ações</th></tr></thead>
                 <tbody id="tabelaSobreaviso"></tbody>
             </table>
         </div>
@@ -177,25 +178,56 @@
     function calcularDuracaoHoras(sd, st, ed, et) { return (new Date(`${ed}T${et}:00`) - new Date(`${sd}T${st}:00`)) / 3600000; }
     function formatarPeriodo(sd, st, ed, et) { return `${formatarDataBR(sd)} ${st} à ${formatarDataBR(ed)} ${et}`; }
 
-    // ========== NOVA LÓGICA DE CÁLCULO DE CRÉDITO DE SOBREAVISO (POR FAIXA DE DIA/HORA) ==========
-    function isMinutoValidoSobreaviso(dataHora) {
-        let diaSemana = dataHora.getDay(); // 0=domingo, 1=segunda, ..., 5=sexta, 6=sábado
-        let hora = dataHora.getHours();
-        let minuto = dataHora.getMinutes();
-        let horaMinuto = hora + minuto/60;
-        // Domingo (0) e Sábado (6) -> dia todo
-        if (diaSemana === 0 || diaSemana === 6) return true;
-        // Sexta-feira (5)
-        if (diaSemana === 5) {
-            return horaMinuto >= 17 + 1/60; // a partir das 17:01
+    // ========== NOVA FUNÇÃO: VERIFICA SE UM MINUTO ESTÁ DENTRO DA JANELA DE SOBREAVISO ==========
+    function isMinutoSobreaviso(data) {
+        // data é um objeto Date (minuto exato)
+        let hora = data.getHours();
+        let minuto = data.getMinutes();
+        // Primeiro, obtemos o dia da semana do minuto (0-dom,1-seg,...,6-sáb)
+        let diaSemana = data.getDay();
+        // Para decidir o "dia base" da janela (se o minuto está na parte da madrugada ou noite)
+        // Se hora >= 18, pertence à janela do próprio dia (início às 18:01 ou 17:01)
+        // Se hora < 8, pertence à janela do dia anterior
+        let diaBase = new Date(data);
+        if (hora >= 18 || hora < 8) {
+            // ajusta o dia base para a data de início da janela
+            if (hora < 8) {
+                diaBase.setDate(diaBase.getDate() - 1);
+            }
+        } else {
+            // Horário entre 08:00 e 17:59 não está em nenhuma janela de sobreaviso (exceto fins de semana, mas aí o dia base é o próprio)
+            // Para sáb/dom, a janela é o dia inteiro, então devemos considerar o próprio dia
+            if (diaSemana === 0 || diaSemana === 6) {
+                // sáb/dom: mantém o próprio dia
+                diaBase = new Date(data);
+            } else {
+                return false;
+            }
         }
-        // Segunda a quinta (1,2,3,4)
-        if (diaSemana >= 1 && diaSemana <= 4) {
-            return horaMinuto >= 18 + 1/60; // a partir das 18:01
+        let diaBaseSemana = diaBase.getDay();
+        // Agora verifica as regras com base no diaBase
+        if (diaBaseSemana === 0 || diaBaseSemana === 6) {
+            // Sábado ou Domingo: sempre conta, independente da hora (mas depois excluímos 05-08)
+            return true;
+        } else if (diaBaseSemana >= 1 && diaBaseSemana <= 4) {
+            // Segunda a quinta: das 18:01 às 07:59 do dia seguinte
+            // O minuto está dentro da janela se:
+            // - hora >= 18:01 (no dia base) ou
+            // - hora < 8 (no dia base+1)
+            // Como já ajustamos diaBase, a hora atual é a hora original.
+            if (hora >= 18 && (hora > 18 || minuto >= 1)) return true;
+            if (hora < 8) return true;
+            return false;
+        } else if (diaBaseSemana === 5) {
+            // Sexta-feira: das 17:01 às 07:59 do sábado
+            if (hora >= 17 && (hora > 17 || minuto >= 1)) return true;
+            if (hora < 8) return true;
+            return false;
         }
         return false;
     }
 
+    // ========== CÁLCULO DE HORAS LÍQUIDAS DE SOBREAVISO (com faixas horárias e exclusão 05-08) ==========
     function calcularHorasSobreavisoLiquido(startDate, startTime, endDate, endTime) {
         let inicio = new Date(`${startDate}T${startTime}:00`);
         let fim = new Date(`${endDate}T${endTime}:00`);
@@ -203,8 +235,15 @@
         let minutosValidos = 0;
         let current = new Date(inicio);
         while (current < fim) {
-            if (isMinutoValidoSobreaviso(current)) {
-                minutosValidos++;
+            let hora = current.getHours();
+            let minuto = current.getMinutes();
+            // Exclusão do intervalo 05:00-07:59 (global)
+            let isExcluido = (hora === 5 || hora === 6 || hora === 7 || (hora === 7 && minuto <= 59));
+            if (!isExcluido) {
+                // Verifica se o minuto está dentro da janela de sobreaviso conforme o dia
+                if (isMinutoSobreaviso(current)) {
+                    minutosValidos++;
+                }
             }
             current.setMinutes(current.getMinutes() + 1);
         }
@@ -258,7 +297,7 @@
         if (!di || !hi || !df || !hf) { alert("Preencha todos os campos."); return; }
         if (new Date(`${df}T${hf}:00`) <= new Date(`${di}T${hi}:00`)) { alert("Fim deve ser posterior ao início."); return; }
         let horasTotais = calcularHorasSobreavisoLiquido(di, hi, df, hf);
-        if (horasTotais <= 0) { alert("Período não gera crédito de sobreaviso (fora das faixas permitidas)."); return; }
+        if (horasTotais <= 0) { alert("Período inválido ou nenhum horário de sobreaviso no período fornecido."); return; }
         let novo = { id: Date.now(), dataInicio: di, horaInicio: hi, dataFim: df, horaFim: hf, horasTotais, horasUsadas: 0, motivo: motivo || "Sobreaviso" };
         sobreavisos.push(novo);
         localStorage.setItem("sobreavisos", JSON.stringify(sobreavisos));
@@ -266,7 +305,7 @@
         document.getElementById("sobreavisoFimData").value = ""; document.getElementById("sobreavisoFimHora").value = "";
         document.getElementById("sobreavisoMotivo").value = "";
         atualizarSaldoSobreaviso();
-        alert("Período de sobreaviso adicionado com crédito calculado pelas faixas!");
+        alert("Período adicionado (considerando faixas horárias e exclusão 05h-08h)!");
     }
     function removerSobreaviso(id) { if(confirm("Remover?")) { sobreavisos = sobreavisos.filter(s => s.id !== id); localStorage.setItem("sobreavisos", JSON.stringify(sobreavisos)); atualizarSaldoSobreaviso(); } }
     function atualizarSaldoSobreaviso() { let saldo = sobreavisos.reduce((a,s) => a + (s.horasTotais - (s.horasUsadas||0)), 0); document.getElementById("saldoSobreaviso").innerHTML = `📞 Saldo disponível: ${formatHorasMinutos(saldo)}`; renderizarTabelaSobreaviso(); return saldo; }
@@ -433,14 +472,11 @@
     async function gerarPDF() { if (salarioMensal <= 0) { alert("Defina o salário."); return; } let dados = aplicarFiltros(); if(dados.length===0) { alert("Sem registros."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(); let y = 25, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE HORAS EXTRAS", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Sobreaviso = 33,33% | Dias úteis = 50% | Domingos/feriados = 100%", pw/2, 24, {align:"center"}); y=38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.text("INFORMAÇÕES", mx, y); y+=5; doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`, mx, y); y+=4; doc.text(`Salário: R$ ${salarioMensal.toFixed(2)} (hora base R$ ${(salarioMensal/220).toFixed(2)})`, mx, y); y+=4; doc.text(`Filtros: ${document.getElementById("filtroStatus").innerText}`, mx, y); y+=8; const col = { per: mx, total: mx+60, not: mx+70, vExtra: mx+80, vNot: mx+95, vTotal: mx+110, sobre: mx+125, desc: mx+133 }; function header() { doc.setFillColor(55,98,120); doc.rect(mx, y, pw-(mx*2), 7, 'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont("helvetica","bold"); doc.text("Período", col.per+1, y+5); doc.text("Total", col.total+1, y+5); doc.text("Not.", col.not+1, y+5); doc.text("V.Extra", col.vExtra+1, y+5); doc.text("V.Not", col.vNot+1, y+5); doc.text("V.Total", col.vTotal+1, y+5); doc.text("Sobr.", col.sobre+1, y+5); doc.text("Descrição", col.desc+1, y+5); y+=7; doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(6.5); } header(); let totalH=0,totalN=0,somaEx=0,somaNo=0,somaTot=0; const linhaH = 5.5; for(let r of dados) { totalH+=r.horas; totalN+=r.horasNoturnas; somaEx+=r.valorExtra; somaNo+=r.valorNoturnoAdicional; somaTot+=r.valor; if(y+linhaH > ph-18) { doc.addPage(); y=20; header(); } let periodo = formatarPeriodo(r.startDate, r.startTime, r.endDate, r.endTime); doc.text(periodo, col.per+1, y+4); doc.text(formatHorasMinutos(r.horas), col.total+1, y+4); doc.text(formatHorasMinutos(r.horasNoturnas), col.not+1, y+4); doc.text(`R$ ${r.valorExtra.toFixed(2)}`, col.vExtra+1, y+4); doc.text(`R$ ${r.valorNoturnoAdicional.toFixed(2)}`, col.vNot+1, y+4); doc.text(`R$ ${r.valor.toFixed(2)}`, col.vTotal+1, y+4); doc.text(r.compensadoSobreaviso ? "Sim" : "Não", col.sobre+1, y+4); let desc = r.descricao.length > 45 ? r.descricao.substring(0,42)+"..." : r.descricao; doc.text(desc, col.desc+1, y+4); y+=linhaH; } y+=6; if (y > ph-20) { doc.addPage(); y=20; } doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("RESUMO FINAL", mx, y); y+=5; doc.setFontSize(9); doc.text(`Total horas: ${formatHorasMinutos(totalH)} (noturnas: ${formatHorasMinutos(totalN)})`, mx, y); y+=4.5; doc.text(`Soma Valor Extra: R$ ${somaEx.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma Adicional Noturno: R$ ${somaNo.toFixed(2)}`, mx, y); y+=4.5; doc.text(`Soma TOTAL: R$ ${somaTot.toFixed(2)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, ph-10); doc.text("Sistema de Horas Extras", mx, ph-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `relatorio_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 PDF principal"; btn.disabled = false; } }, 100); }
 
     // ========== PDF SOBREAVISO ==========
-    async function gerarPDFSobreaviso() { if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(); let y = 20, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE SOBREAVISO (faixas específicas)", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Crédito contado apenas nas faixas: 2ª a 5ª 18:01-23:59 | 6ª 17:01-23:59 | Sáb/Dom dia todo", pw/2, 24, {align:"center"}); y = 38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("Período (início → fim)", mx, y); doc.text("Horas totais (crédito)", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9); let saldoTotal = 0; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas || 0); saldoTotal += saldo; let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); doc.text(periodo, mx, y); doc.text(formatHorasMinutos(s.horasTotais), mx+75, y); doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y); doc.text(formatHorasMinutos(saldo), mx+145, y); doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y); y+=5; if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; } } y+=6; doc.setFont("helvetica","bold"); doc.text(`Saldo total disponível: ${formatHorasMinutos(saldoTotal)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); doc.text("Relatório de Sobreaviso", mx, doc.internal.pageSize.getHeight()-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `sobreaviso_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 Relatório de sobreaviso"; btn.disabled = false; } }, 100); }
+    async function gerarPDFSobreaviso() { if (sobreavisos.length === 0) { alert("Nenhum período cadastrado."); return; } const btn = event.target; btn.innerHTML = '<span class="loading"></span>'; btn.disabled = true; setTimeout(() => { try { const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pw = doc.internal.pageSize.getWidth(); let y = 20, mx = 10; doc.setFillColor(22,60,85); doc.rect(0,0,pw,28,'F'); doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DE SOBREAVISO (faixas horárias + exclusão 05h-08h)", pw/2, 15, {align:"center"}); doc.setFontSize(8); doc.text("Seg-qui 18:01-07:59 | Sex 17:01-07:59 | Sáb/Dom dia inteiro (exclui 05-08)", pw/2, 24, {align:"center"}); y = 38; doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("Período (início → fim)", mx, y); doc.text("Horas totais (líq)", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9); let saldoTotal = 0; for (let s of sobreavisos) { let saldo = s.horasTotais - (s.horasUsadas || 0); saldoTotal += saldo; let periodo = formatarPeriodo(s.dataInicio, s.horaInicio, s.dataFim, s.horaFim); doc.text(periodo, mx, y); doc.text(formatHorasMinutos(s.horasTotais), mx+75, y); doc.text(formatHorasMinutos(s.horasUsadas || 0), mx+110, y); doc.text(formatHorasMinutos(saldo), mx+145, y); doc.text(s.motivo.length>20 ? s.motivo.substring(0,17)+"..." : s.motivo, mx+175, y); y+=5; if (y > 190) { doc.addPage(); y=25; doc.text("Período", mx, y); doc.text("Horas totais", mx+75, y); doc.text("Horas usadas", mx+110, y); doc.text("Saldo", mx+145, y); doc.text("Motivo", mx+175, y); y+=5; } } y+=6; doc.setFont("helvetica","bold"); doc.text(`Saldo total disponível: ${formatHorasMinutos(saldoTotal)}`, mx, y); const pag = doc.internal.getNumberOfPages(); for(let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.text(`Pág. ${i}/${pag}`, pw-18, doc.internal.pageSize.getHeight()-10); doc.text("Relatório de Sobreaviso", mx, doc.internal.pageSize.getHeight()-10); } pdfBlob = doc.output('blob'); document.getElementById("nomeArquivoPDF").value = `sobreaviso_${new Date().toISOString().slice(0,10)}`; document.getElementById("pdfModal").style.display = "block"; } catch(e) { alert("Erro: "+e); } finally { btn.innerHTML = "📄 Relatório de sobreaviso"; btn.disabled = false; } }, 100); }
 
     // ========== PDF BANCO DE HORAS ==========
     async function gerarPDFBancoHoras() {
-        if (excedentesAutomaticos.length === 0 && lancamentosManuais.length === 0) { 
-            alert("Nenhum movimento no banco de horas."); 
-            return; 
-        }
+        if (excedentesAutomaticos.length === 0 && lancamentosManuais.length === 0) { alert("Nenhum movimento no banco de horas."); return; }
         const btn = event.target;
         btn.innerHTML = '<span class="loading"></span>';
         btn.disabled = true;
@@ -449,121 +485,50 @@
                 const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 const pw = doc.internal.pageSize.getWidth();
                 let y = 25, mx = 12;
-                doc.setFillColor(22, 60, 85);
-                doc.rect(0, 0, pw, 28, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(14);
-                doc.text("RELATÓRIO DO BANCO DE HORAS", pw / 2, 15, { align: "center" });
-                doc.setFontSize(9);
-                doc.text("Excedentes automaticos (acima de 40h no periodo de 16 a 15 de cada mes) + Lancamentos manuais", pw / 2, 24, { align: "center" });
+                doc.setFillColor(22, 60, 85); doc.rect(0,0,pw,28,'F');
+                doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("RELATÓRIO DO BANCO DE HORAS", pw/2, 15, {align:"center"});
+                doc.setFontSize(9); doc.text("Excedentes automaticos (acima de 40h no periodo de 16 a 15 de cada mes) + Lancamentos manuais", pw/2, 24, {align:"center"});
                 y = 42;
-                doc.setTextColor(0, 0, 0);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(11);
-                doc.text("1. EXCEDENTES AUTOMATICOS", mx, y);
-                y += 7;
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.setTextColor(40, 40, 40);
-                doc.text("Periodo (inicio ao fim)", mx, y);
-                doc.text("Horas no periodo", mx + 95, y);
-                doc.text("Excedente (acima de 40h)", mx + 145, y);
-                y += 5;
-                doc.setDrawColor(180, 180, 180);
-                doc.line(mx, y, pw - mx, y);
-                y += 3;
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(8.5);
+                doc.setTextColor(0,0,0); doc.setFont("helvetica","bold"); doc.setFontSize(11);
+                doc.text("1. EXCEDENTES AUTOMATICOS", mx, y); y += 7;
+                doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(40,40,40);
+                doc.text("Periodo (inicio ao fim)", mx, y); doc.text("Horas no periodo", mx+95, y); doc.text("Excedente (acima de 40h)", mx+145, y);
+                y += 5; doc.line(mx, y, pw-mx, y); y += 3;
+                doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
                 let totalAuto = 0;
                 for (let auto of excedentesAutomaticos) {
                     let [mesStr, anoStr] = auto.competencia.split('/');
-                    let mes = parseInt(mesStr, 10);
-                    let ano = parseInt(anoStr, 10);
-                    let mesFim = mes + 1;
-                    let anoFim = ano;
+                    let mes = parseInt(mesStr,10), ano = parseInt(anoStr,10);
+                    let mesFim = mes+1, anoFim = ano;
                     if (mesFim > 12) { mesFim = 1; anoFim++; }
                     let periodoStr = `16/${mes.toString().padStart(2,'0')}/${ano} a 15/${mesFim.toString().padStart(2,'0')}/${anoFim}`;
                     let totalPeriodo = auto.horasExcedente + 40;
                     totalAuto += auto.horasExcedente;
-                    doc.text(periodoStr, mx, y);
-                    doc.text(formatHorasMinutos(totalPeriodo), mx + 95, y);
-                    doc.text(formatHorasMinutos(auto.horasExcedente), mx + 145, y);
+                    doc.text(periodoStr, mx, y); doc.text(formatHorasMinutos(totalPeriodo), mx+95, y); doc.text(formatHorasMinutos(auto.horasExcedente), mx+145, y);
                     y += 5;
-                    if (y > 190) {
-                        doc.addPage();
-                        y = 25;
-                        doc.setFont("helvetica", "bold");
-                        doc.text("Periodo (inicio ao fim)", mx, y);
-                        doc.text("Horas no periodo", mx + 95, y);
-                        doc.text("Excedente (acima de 40h)", mx + 145, y);
-                        y += 5;
-                        doc.line(mx, y, pw - mx, y);
-                        y += 3;
-                        doc.setFont("helvetica", "normal");
-                    }
+                    if (y > 190) { doc.addPage(); y=25; doc.setFont("helvetica","bold"); doc.text("Periodo (inicio ao fim)", mx, y); doc.text("Horas no periodo", mx+95, y); doc.text("Excedente (acima de 40h)", mx+145, y); y+=5; doc.line(mx, y, pw-mx, y); y+=3; doc.setFont("helvetica","normal"); }
                 }
-                y += 6;
-                doc.setFont("helvetica", "bold");
-                doc.text(`Total automatico acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y);
-                y += 12;
-                doc.setFont("helvetica", "bold");
-                doc.text("2. LANCAMENTOS MANUAIS", mx, y);
-                y += 7;
-                doc.setFontSize(9);
-                doc.text("Data", mx, y);
-                doc.text("Horas", mx + 45, y);
-                doc.text("Motivo", mx + 85, y);
-                y += 5;
-                doc.line(mx, y, pw - mx, y);
-                y += 3;
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(8.5);
+                y += 6; doc.setFont("helvetica","bold"); doc.text(`Total automatico acumulado: ${formatHorasMinutos(totalAuto)}`, mx, y); y += 12;
+                doc.setFont("helvetica","bold"); doc.text("2. LANCAMENTOS MANUAIS", mx, y); y += 7;
+                doc.setFontSize(9); doc.text("Data", mx, y); doc.text("Horas", mx+45, y); doc.text("Motivo", mx+85, y); y += 5; doc.line(mx, y, pw-mx, y); y += 3;
+                doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
                 let totalManual = 0;
                 for (let l of lancamentosManuais) {
                     totalManual += l.horas;
-                    doc.text(formatarDataBR(l.data), mx, y);
-                    doc.text(formatHorasMinutos(l.horas), mx + 45, y);
-                    let motivoTexto = l.motivo.length > 35 ? l.motivo.substring(0, 32) + "..." : l.motivo;
-                    doc.text(motivoTexto, mx + 85, y);
+                    doc.text(formatarDataBR(l.data), mx, y); doc.text(formatHorasMinutos(l.horas), mx+45, y); doc.text(l.motivo.length>35?l.motivo.substring(0,32)+"...":l.motivo, mx+85, y);
                     y += 5;
-                    if (y > 190) {
-                        doc.addPage();
-                        y = 25;
-                        doc.setFont("helvetica", "bold");
-                        doc.text("Data", mx, y);
-                        doc.text("Horas", mx + 45, y);
-                        doc.text("Motivo", mx + 85, y);
-                        y += 5;
-                        doc.line(mx, y, pw - mx, y);
-                        y += 3;
-                        doc.setFont("helvetica", "normal");
-                    }
+                    if (y > 190) { doc.addPage(); y=25; doc.setFont("helvetica","bold"); doc.text("Data", mx, y); doc.text("Horas", mx+45, y); doc.text("Motivo", mx+85, y); y+=5; doc.line(mx, y, pw-mx, y); y+=3; doc.setFont("helvetica","normal"); }
                 }
-                y += 8;
-                doc.setFont("helvetica", "bold");
-                doc.text(`Total manual acumulado: ${formatHorasMinutos(totalManual)}`, mx, y);
-                y += 8;
+                y += 8; doc.setFont("helvetica","bold"); doc.text(`Total manual acumulado: ${formatHorasMinutos(totalManual)}`, mx, y); y += 8;
                 let saldoFinal = totalAuto + totalManual;
-                doc.setFontSize(12);
-                doc.setTextColor(0, 100, 0);
-                doc.text(`SALDO TOTAL DO BANCO DE HORAS: ${formatHorasMinutos(saldoFinal)}`, mx, y);
+                doc.setFontSize(12); doc.setTextColor(0,100,0); doc.text(`SALDO TOTAL DO BANCO DE HORAS: ${formatHorasMinutos(saldoFinal)}`, mx, y);
                 const pag = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pag; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(7);
-                    doc.setTextColor(100, 100, 100);
-                    doc.text(`Pagina ${i} de ${pag}`, pw - 20, doc.internal.pageSize.getHeight() - 8);
-                    doc.text("Banco de Horas", mx, doc.internal.pageSize.getHeight() - 8);
-                }
+                for (let i=1;i<=pag;i++) { doc.setPage(i); doc.setFontSize(7); doc.setTextColor(100,100,100); doc.text(`Pagina ${i} de ${pag}`, pw-20, doc.internal.pageSize.getHeight()-8); doc.text("Banco de Horas", mx, doc.internal.pageSize.getHeight()-8); }
                 pdfBlob = doc.output('blob');
                 document.getElementById("nomeArquivoPDF").value = `banco_horas_${new Date().toISOString().slice(0,10)}`;
                 document.getElementById("pdfModal").style.display = "block";
-            } catch (e) {
-                alert("Erro ao gerar PDF do banco de horas: " + e);
-            } finally {
-                btn.innerHTML = "📄 Relatório do Banco";
-                btn.disabled = false;
-            }
+            } catch(e) { alert("Erro: "+e); }
+            finally { btn.innerHTML = "📄 Relatório do Banco"; btn.disabled = false; }
         }, 100);
     }
 
